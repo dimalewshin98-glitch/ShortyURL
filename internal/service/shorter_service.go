@@ -8,17 +8,20 @@ import (
 )
 
 type ShorterService struct {
-	repo *repository.InmemoryRepository
+	repo repository.RepositoryInterface
 }
 
-func NewShorterService(repo *repository.InmemoryRepository) *ShorterService {
+func NewShorterService(repo repository.RepositoryInterface) *ShorterService {
 	return &ShorterService{
 		repo: repo,
 	}
 }
 
 func (s *ShorterService) GetUrl(urlId string) (string, error) {
-	url := s.repo.Get(urlId)
+	url, err := s.repo.Get(urlId)
+	if err != nil {
+		return "", err
+	}
 	if url == "" {
 		return url, errors.New("URL not found")
 	}
@@ -26,9 +29,11 @@ func (s *ShorterService) GetUrl(urlId string) (string, error) {
 }
 
 func (s *ShorterService) Shorten(url string) (string, error) {
-	urlId := s.generateShortUrl()
-	s.repo.Store(urlId, url)
-	return urlId, nil
+	urlId, err := s.repo.Store(s.generateShortUrl(), url)
+	if err != nil {
+		return "", err
+	}
+	return "http://localhost:8080/" + urlId, nil
 }
 
 func (s *ShorterService) generateShortUrl() string {

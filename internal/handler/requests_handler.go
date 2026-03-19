@@ -8,10 +8,12 @@ import (
 )
 
 type RequestsHandler struct {
-	service *service.ShorterService
+	// service *service.ShorterService
+	service service.ServiceInterface
 }
 
-func NewRequestsHandler(service *service.ShorterService) *RequestsHandler {
+// func NewRequestsHandler(service *service.ShorterService) *RequestsHandler {
+func NewRequestsHandler(service service.ServiceInterface) *RequestsHandler {
 	return &RequestsHandler{
 		service: service,
 	}
@@ -32,23 +34,24 @@ func (s *RequestsHandler) GetUrl(res http.ResponseWriter, req *http.Request) {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
 	}
+	res.Header().Set("Content-Type", "text/plain")
 	res.WriteHeader(http.StatusTemporaryRedirect)
 	res.Write([]byte("Location: " + url))
 }
 
 func (s *RequestsHandler) Shorten(res http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodPost {
-		http.Error(res, "Method not allowed", http.StatusMethodNotAllowed)
+		http.Error(res, "Method not allowed", http.StatusBadRequest)
 		return
 	}
 	if req.Header.Get("Content-Type") != "text/plain" {
-		http.Error(res, "Content-Type not allowed", http.StatusMethodNotAllowed)
+		http.Error(res, "Content-Type not allowed", http.StatusBadRequest)
 		return
 	}
 	reqBytes, err := io.ReadAll(req.Body)
 	defer req.Body.Close()
 	if err != nil {
-		http.Error(res, "Reading body error", http.StatusMethodNotAllowed)
+		http.Error(res, "Reading body error", http.StatusBadRequest)
 		return
 	}
 	reqString := string(reqBytes)

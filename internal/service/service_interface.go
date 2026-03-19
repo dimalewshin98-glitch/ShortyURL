@@ -1,6 +1,6 @@
 package service
 
-type Service interface {
+type ServiceInterface interface {
 	Shorten(url string) (string, error)
 	GetUrl(urlId string) (string, error)
 }

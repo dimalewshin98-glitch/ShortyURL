@@ -1,6 +1,6 @@
 package repository
 
-type Repository interface {
-	Store(urlId string, url string)
-	Get(urlId string) string
+type RepositoryInterface interface {
+	Store(urlId string, url string) (string, error)
+	Get(urlId string) (string, error)
 }
