@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/dimalewshin98-glitch/ShortyURL/internal/config"
 	"github.com/dimalewshin98-glitch/ShortyURL/internal/handler"
 	"github.com/dimalewshin98-glitch/ShortyURL/internal/repository"
 	"github.com/dimalewshin98-glitch/ShortyURL/internal/service"
@@ -89,7 +90,11 @@ func TestStorenHandler(t *testing.T) {
 	}
 	repository := repository.NewInmemoryRepository()
 	mockedRepository := &MockedInmemoryRepository{repository}
-	shorterService := service.NewShorterService(mockedRepository)
+	mockedConfig := &config.Config{
+		ServerHostPort:     "localhost:8080",
+		ShortenUrlHostPort: "http://localhost:8080",
+	}
+	shorterService := service.NewShorterService(mockedRepository, mockedConfig)
 	requestsHandler := handler.NewRequestsHandler(shorterService)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -150,7 +155,11 @@ func TestGetUrlHandler(t *testing.T) {
 	}
 	repository := repository.NewInmemoryRepository()
 	mockedRepository := &MockedInmemoryRepository{repository}
-	shorterService := service.NewShorterService(mockedRepository)
+	mockedConfig := &config.Config{
+		ServerHostPort:     "localhost:8080",
+		ShortenUrlHostPort: "http://localhost:8080",
+	}
+	shorterService := service.NewShorterService(mockedRepository, mockedConfig)
 	requestsHandler := handler.NewRequestsHandler(shorterService)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/dimalewshin98-glitch/ShortyURL/internal/config"
 	"github.com/dimalewshin98-glitch/ShortyURL/internal/handler"
 	"github.com/dimalewshin98-glitch/ShortyURL/internal/repository"
 	"github.com/dimalewshin98-glitch/ShortyURL/internal/service"
@@ -12,12 +13,13 @@ import (
 )
 
 func main() {
+	config := config.NewConfig()
 	repository := repository.NewInmemoryRepository()
-	shorterService := service.NewShorterService(repository)
+	shorterService := service.NewShorterService(repository, config)
 	requestsHandler := handler.NewRequestsHandler(shorterService)
 	r := chi.NewRouter()
 	r.Post("/", requestsHandler.Shorten)
 	r.Get("/{id}", requestsHandler.GetUrl)
-	fmt.Println("server starting at port 8080")
-	log.Fatal(http.ListenAndServe(":8080", r))
+	fmt.Println("server starting at: " + config.ServerHostPort)
+	log.Fatal(http.ListenAndServe(config.ServerHostPort, r))
 }

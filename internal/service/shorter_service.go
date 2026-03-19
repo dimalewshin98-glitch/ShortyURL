@@ -4,16 +4,19 @@ import (
 	"errors"
 	"math/rand"
 
+	"github.com/dimalewshin98-glitch/ShortyURL/internal/config"
 	"github.com/dimalewshin98-glitch/ShortyURL/internal/repository"
 )
 
 type ShorterService struct {
-	repo repository.RepositoryInterface
+	repo   repository.RepositoryInterface
+	config *config.Config
 }
 
-func NewShorterService(repo repository.RepositoryInterface) *ShorterService {
+func NewShorterService(repo repository.RepositoryInterface, config *config.Config) *ShorterService {
 	return &ShorterService{
-		repo: repo,
+		repo:   repo,
+		config: config,
 	}
 }
 
@@ -33,7 +36,7 @@ func (s *ShorterService) Shorten(url string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return "http://localhost:8080/" + urlId, nil
+	return s.config.ShortenUrlHostPort + "/" + urlId, nil
 }
 
 func (s *ShorterService) generateShortUrl() string {
