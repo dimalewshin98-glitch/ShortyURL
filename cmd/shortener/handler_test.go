@@ -21,7 +21,7 @@ func (mir *MockedInmemoryRepository) Get(urlID string) (string, error) {
 	return "https://mockedurl.com", nil
 }
 
-func (mir *MockedInmemoryRepository) Store(urlId string, url string) (string, error) {
+func (mir *MockedInmemoryRepository) Store(urlID string, URL string) (string, error) {
 	return "AbCdEf", nil
 }
 
@@ -92,7 +92,7 @@ func TestStorenHandler(t *testing.T) {
 	mockedRepository := &MockedInmemoryRepository{repository}
 	mockedConfig := &config.Config{
 		ServerHostPort:     "localhost:8080",
-		ShortenUrlHostPort: "http://localhost:8080",
+		ShortenURLHostPort: "http://localhost:8080",
 	}
 	shorterService := service.NewShorterService(mockedRepository, mockedConfig)
 	requestsHandler := handler.NewRequestsHandler(shorterService)
@@ -110,10 +110,11 @@ func TestStorenHandler(t *testing.T) {
 	}
 }
 
-func TestGetUrlHandler(t *testing.T) {
+func TestGetURLHandler(t *testing.T) {
 	type want struct {
 		statusCode int
 		response   string
+		location   string
 	}
 	tests := []struct {
 		name        string
@@ -127,7 +128,8 @@ func TestGetUrlHandler(t *testing.T) {
 			contentType: "text/plain",
 			want: want{
 				statusCode: 307,
-				response:   "Location: https://mockedurl.com",
+				response:   "",
+				location:   "https://mockedurl.com",
 			},
 			request:     "/AbCdEf",
 			requestType: "GET",
@@ -138,6 +140,7 @@ func TestGetUrlHandler(t *testing.T) {
 			want: want{
 				statusCode: 400,
 				response:   "Method not allowed\n",
+				location:   "",
 			},
 			request:     "/AbCdEf",
 			requestType: "POST",
@@ -148,6 +151,7 @@ func TestGetUrlHandler(t *testing.T) {
 			want: want{
 				statusCode: 400,
 				response:   "Content-Type not allowed\n",
+				location:   "",
 			},
 			request:     "/AbCdEf",
 			requestType: "GET",
@@ -157,7 +161,7 @@ func TestGetUrlHandler(t *testing.T) {
 	mockedRepository := &MockedInmemoryRepository{repository}
 	mockedConfig := &config.Config{
 		ServerHostPort:     "localhost:8080",
-		ShortenUrlHostPort: "http://localhost:8080",
+		ShortenURLHostPort: "http://localhost:8080",
 	}
 	shorterService := service.NewShorterService(mockedRepository, mockedConfig)
 	requestsHandler := handler.NewRequestsHandler(shorterService)
@@ -166,10 +170,11 @@ func TestGetUrlHandler(t *testing.T) {
 			request := httptest.NewRequest(tt.requestType, tt.request, nil)
 			request.Header.Set("Content-Type", tt.contentType)
 			w := httptest.NewRecorder()
-			requestsHandler.GetUrl(w, request)
+			requestsHandler.GetURL(w, request)
 			resBytes, _ := io.ReadAll(w.Body)
 			assert.Equal(t, tt.want.statusCode, w.Result().StatusCode)
 			assert.Equal(t, tt.want.response, string(resBytes))
+			assert.Equal(t, tt.want.location, w.Header().Get("Location"))
 		})
 	}
 }

@@ -20,29 +20,29 @@ func NewShorterService(repo repository.RepositoryInterface, config *config.Confi
 	}
 }
 
-func (s *ShorterService) GetUrl(urlId string) (string, error) {
-	url, err := s.repo.Get(urlId)
+func (s *ShorterService) GetURL(urlID string) (string, error) {
+	URL, err := s.repo.Get(urlID)
 	if err != nil {
 		return "", err
 	}
-	if url == "" {
-		return url, errors.New("URL not found")
+	if URL == "" {
+		return URL, errors.New("URL not found")
 	}
-	return url, nil
+	return URL, nil
 }
 
-func (s *ShorterService) Shorten(url string) (string, error) {
-	urlId, err := s.repo.Store(s.generateShortUrl(), url)
+func (s *ShorterService) Shorten(URL string) (string, error) {
+	urlID, err := s.repo.Store(s.generateShortURL(), URL)
 	if err != nil {
 		return "", err
 	}
-	return s.config.ShortenUrlHostPort + "/" + urlId, nil
+	return s.config.ShortenURLHostPort + "/" + urlID, nil
 }
 
-func (s *ShorterService) generateShortUrl() string {
-	urlIdLen := 6
+func (s *ShorterService) generateShortURL() string {
+	urlIDLen := 6
 	letters := "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM"
-	result := make([]byte, urlIdLen)
+	result := make([]byte, urlIDLen)
 	for i := range result {
 		result[i] = letters[rand.Intn(len(letters))]
 	}

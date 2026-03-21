@@ -19,7 +19,7 @@ func NewRequestsHandler(service service.ServiceInterface) *RequestsHandler {
 	}
 }
 
-func (s *RequestsHandler) GetUrl(res http.ResponseWriter, req *http.Request) {
+func (s *RequestsHandler) GetURL(res http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodGet {
 		http.Error(res, "Method not allowed", http.StatusBadRequest)
 		return
@@ -28,15 +28,14 @@ func (s *RequestsHandler) GetUrl(res http.ResponseWriter, req *http.Request) {
 		http.Error(res, "Content-Type not allowed", http.StatusBadRequest)
 		return
 	}
-	urlId := req.PathValue("id")
-	url, err := s.service.GetUrl(urlId)
+	urlID := req.PathValue("id")
+	URL, err := s.service.GetURL(urlID)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
 	}
-	res.Header().Set("Content-Type", "text/plain")
+	res.Header().Set("Location", URL)
 	res.WriteHeader(http.StatusTemporaryRedirect)
-	res.Write([]byte("Location: " + url))
 }
 
 func (s *RequestsHandler) Shorten(res http.ResponseWriter, req *http.Request) {
@@ -59,12 +58,12 @@ func (s *RequestsHandler) Shorten(res http.ResponseWriter, req *http.Request) {
 		http.Error(res, "URL is empty", http.StatusBadRequest)
 		return
 	}
-	shortUrl, err := s.service.Shorten(reqString)
+	shortURL, err := s.service.Shorten(reqString)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
 	}
 	res.Header().Set("Content-Type", "text/plain")
 	res.WriteHeader(http.StatusCreated)
-	res.Write([]byte(shortUrl))
+	res.Write([]byte(shortURL))
 }

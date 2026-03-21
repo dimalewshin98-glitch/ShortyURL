@@ -10,12 +10,12 @@ func NewInmemoryRepository() *InmemoryRepository {
 	}
 }
 
-func (r *InmemoryRepository) Store(urlId string, url string) (string, error) {
-	r.urls[urlId] = url
-	return urlId, nil
+func (r *InmemoryRepository) Store(urlID string, URL string) (string, error) {
+	r.urls[urlID] = URL
+	return urlID, nil
 }
 
-func (r *InmemoryRepository) Get(urlId string) (string, error) {
-	url := r.urls[urlId]
-	return url, nil
+func (r *InmemoryRepository) Get(urlID string) (string, error) {
+	URL := r.urls[urlID]
+	return URL, nil
 }

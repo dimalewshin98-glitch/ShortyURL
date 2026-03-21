@@ -19,7 +19,7 @@ func main() {
 	requestsHandler := handler.NewRequestsHandler(shorterService)
 	r := chi.NewRouter()
 	r.Post("/", requestsHandler.Shorten)
-	r.Get("/{id}", requestsHandler.GetUrl)
+	r.Get("/{id}", requestsHandler.GetURL)
 	fmt.Println("server starting at: " + config.ServerHostPort)
 	log.Fatal(http.ListenAndServe(config.ServerHostPort, r))
 }
