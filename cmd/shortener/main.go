@@ -23,6 +23,7 @@ func main() {
 	requestsHandler := handler.NewRequestsHandler(shorterService)
 	r := chi.NewRouter()
 	r.Post("/", logger.RequestLogger(requestsHandler.Shorten))
+	r.Post("/api/shorten", logger.RequestLogger(requestsHandler.ApiShorten))
 	r.Get("/{id}", logger.RequestLogger(requestsHandler.GetURL))
 	logger.Log.Info("Running server", zap.String("address", cfg.ServerHostPort))
 	err := http.ListenAndServe(cfg.ServerHostPort, r)

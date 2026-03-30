@@ -178,3 +178,100 @@ func TestGetURLHandler(t *testing.T) {
 		})
 	}
 }
+
+func TestApiStorenHandler(t *testing.T) {
+	type want struct {
+		contentType string
+		statusCode  int
+		response    string
+	}
+	tests := []struct {
+		name        string
+		contentType string
+		body        string
+		request     string
+		requestType string
+		want        want
+	}{
+		{
+			name:        "test 1 | Success",
+			contentType: "application/json",
+			body:        `{"url": "https://mockedurl.com"}`,
+			want: want{
+				contentType: "application/json",
+				statusCode:  201,
+				response:    `{"result":"http://localhost:8080/AbCdEf"}` + "\n",
+			},
+			request:     "/api/shorten",
+			requestType: "POST",
+		},
+		{
+			name:        "test 2 | Unsuccess | Request type error",
+			contentType: "application/json",
+			body:        `{"url": "https://mockedurl.com"}`,
+			want: want{
+				contentType: "text/plain; charset=utf-8",
+				statusCode:  400,
+				response:    "Method not allowed\n",
+			},
+			request:     "/api/shorten",
+			requestType: "GET",
+		},
+		{
+			name:        "test 3 | Unsuccess | Content-Type error",
+			contentType: "text/html",
+			body:        `{"url": "https://mockedurl.com"}`,
+			want: want{
+				contentType: "text/plain; charset=utf-8",
+				statusCode:  400,
+				response:    "Content-Type not allowed\n",
+			},
+			request:     "/api/shorten",
+			requestType: "POST",
+		},
+		{
+			name:        "test 4 | Unsuccess | URL is empty",
+			contentType: "application/json",
+			body:        `{"url": ""}`,
+			want: want{
+				contentType: "text/plain; charset=utf-8",
+				statusCode:  400,
+				response:    "URL is empty\n",
+			},
+			request:     "/api/shorten",
+			requestType: "POST",
+		},
+		{
+			name:        "test 5 | Unsuccess | Json decode error",
+			contentType: "application/json",
+			body:        `{"url": 123}`,
+			want: want{
+				contentType: "text/plain; charset=utf-8",
+				statusCode:  400,
+				response:    "Json request decode error\n",
+			},
+			request:     "/api/shorten",
+			requestType: "POST",
+		},
+	}
+	repository := repository.NewInmemoryRepository()
+	mockedRepository := &MockedInmemoryRepository{repository}
+	mockedConfig := &config.Config{
+		ServerHostPort:     "localhost:8080",
+		ShortenURLHostPort: "http://localhost:8080",
+	}
+	shorterService := service.NewShorterService(mockedRepository, mockedConfig)
+	requestsHandler := handler.NewRequestsHandler(shorterService)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			request := httptest.NewRequest(tt.requestType, tt.request, strings.NewReader(tt.body))
+			request.Header.Set("Content-Type", tt.contentType)
+			w := httptest.NewRecorder()
+			requestsHandler.ApiShorten(w, request)
+			resBytes, _ := io.ReadAll(w.Body)
+			assert.Equal(t, tt.want.statusCode, w.Result().StatusCode)
+			assert.Equal(t, tt.want.response, string(resBytes))
+			assert.Equal(t, tt.want.contentType, w.Header().Get("Content-Type"))
+		})
+	}
+}
