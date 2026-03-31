@@ -42,12 +42,12 @@ func (lw *loggedResponseWriter) Write(data []byte) (int, error) {
 	return size, err
 }
 
-func RequestLogger(h http.HandlerFunc) http.HandlerFunc {
-	logFn := func(w http.ResponseWriter, r *http.Request) {
+func RequestLogger(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		uri := r.RequestURI
 		method := r.Method
-		lw := &loggedResponseWriter{ResponseWriter: w, statusCode: 0, bodySize: 0}
+		lw := &loggedResponseWriter{ResponseWriter: w, statusCode: 200, bodySize: 0}
 		h.ServeHTTP(lw, r)
 		duration := strconv.FormatInt(time.Since(start).Milliseconds(), 10)
 		Log.Info("got incoming HTTP request",
@@ -59,6 +59,6 @@ func RequestLogger(h http.HandlerFunc) http.HandlerFunc {
 			zap.String("status", strconv.Itoa(lw.statusCode)),
 			zap.String("body size", strconv.Itoa(lw.bodySize)),
 		)
-	}
-	return http.HandlerFunc(logFn)
+	})
+
 }

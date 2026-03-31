@@ -22,11 +22,11 @@ func main() {
 	shorterService := service.NewShorterService(repository, cfg)
 	requestsHandler := handler.NewRequestsHandler(shorterService)
 	r := chi.NewRouter()
-	r.Post("/", logger.RequestLogger(requestsHandler.Shorten))
-	r.Post("/api/shorten", logger.RequestLogger(requestsHandler.ApiShorten))
-	r.Get("/{id}", logger.RequestLogger(requestsHandler.GetURL))
+	r.Post("/", requestsHandler.Shorten)
+	r.Post("/api/shorten", requestsHandler.ApiShorten)
+	r.Get("/{id}", requestsHandler.GetURL)
 	logger.Log.Info("Running server", zap.String("address", cfg.ServerHostPort))
-	err := http.ListenAndServe(cfg.ServerHostPort, r)
+	err := http.ListenAndServe(cfg.ServerHostPort, logger.RequestLogger(handler.GzipMiddleware(r)))
 	if err != nil {
 		logger.Log.Fatal("Server failed", zap.Error(err))
 	}
