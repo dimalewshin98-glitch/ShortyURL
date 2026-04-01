@@ -10,11 +10,9 @@ import (
 )
 
 type RequestsHandler struct {
-	// service *service.ShorterService
 	service service.ServiceInterface
 }
 
-// func NewRequestsHandler(service *service.ShorterService) *RequestsHandler {
 func NewRequestsHandler(service service.ServiceInterface) *RequestsHandler {
 	return &RequestsHandler{
 		service: service,
