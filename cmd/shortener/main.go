@@ -25,6 +25,8 @@ func main() {
 		repo, err = repository.NewfileRepository(cfg.FileStoragePath)
 	case "memory":
 		repo = repository.NewInmemoryRepository()
+	case "db":
+		repo, err = repository.NewDBRepository(cfg.DatabaseDsn)
 	}
 	if err != nil {
 		panic(err)
@@ -35,6 +37,7 @@ func main() {
 	shorterService := service.NewShorterService(repo, cfg)
 	requestsHandler := handler.NewRequestsHandler(shorterService)
 	r := chi.NewRouter()
+	r.Get("/ping", requestsHandler.Ping)
 	r.Post("/", requestsHandler.Shorten)
 	r.Get("/{id}", requestsHandler.GetURL)
 	r.Post("/api/shorten", requestsHandler.ApiShorten)

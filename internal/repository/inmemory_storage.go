@@ -10,6 +10,10 @@ func NewInmemoryRepository() *InmemoryRepository {
 	}
 }
 
+func (r *InmemoryRepository) Ping() error {
+	return nil
+}
+
 func (r *InmemoryRepository) Store(urlID string, URL string) (string, error) {
 	r.urls[urlID] = URL
 	return urlID, nil

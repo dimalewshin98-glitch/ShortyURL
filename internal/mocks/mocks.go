@@ -1,0 +1,74 @@
+package mocks
+
+import (
+	reflect "reflect"
+
+	gomock "github.com/golang/mock/gomock"
+)
+
+// MockRepositoryInterface is a mock of RepositoryInterface interface.
+type MockRepositoryInterface struct {
+	ctrl     *gomock.Controller
+	recorder *MockRepositoryInterfaceMockRecorder
+}
+
+// MockRepositoryInterfaceMockRecorder is the mock recorder for MockRepositoryInterface.
+type MockRepositoryInterfaceMockRecorder struct {
+	mock *MockRepositoryInterface
+}
+
+// NewMockRepositoryInterface creates a new mock instance.
+func NewMockRepositoryInterface(ctrl *gomock.Controller) *MockRepositoryInterface {
+	mock := &MockRepositoryInterface{ctrl: ctrl}
+	mock.recorder = &MockRepositoryInterfaceMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockRepositoryInterface) EXPECT() *MockRepositoryInterfaceMockRecorder {
+	return m.recorder
+}
+
+// Get mocks base method.
+func (m *MockRepositoryInterface) Get(urlId string) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Get", urlId)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Get indicates an expected call of Get.
+func (mr *MockRepositoryInterfaceMockRecorder) Get(urlId interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockRepositoryInterface)(nil).Get), urlId)
+}
+
+// Ping mocks base method.
+func (m *MockRepositoryInterface) Ping() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Ping")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Ping indicates an expected call of Ping.
+func (mr *MockRepositoryInterfaceMockRecorder) Ping() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Ping", reflect.TypeOf((*MockRepositoryInterface)(nil).Ping))
+}
+
+// Store mocks base method.
+func (m *MockRepositoryInterface) Store(urlId, url string) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Store", urlId, url)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Store indicates an expected call of Store.
+func (mr *MockRepositoryInterfaceMockRecorder) Store(urlId, url interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Store", reflect.TypeOf((*MockRepositoryInterface)(nil).Store), urlId, url)
+}

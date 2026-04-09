@@ -109,6 +109,10 @@ func NewfileRepository(fileStoragePath string) (*InfileRepository, error) {
 	}, err
 }
 
+func (r *InfileRepository) Ping() error {
+	return nil
+}
+
 func (r *InfileRepository) Store(urlID string, URL string) (string, error) {
 	element := URLelement{
 		UUID:        "0",

@@ -20,6 +20,11 @@ func NewShorterService(repo repository.RepositoryInterface, config *config.Confi
 	}
 }
 
+func (s *ShorterService) Ping() error {
+	err := s.repo.Ping()
+	return err
+}
+
 func (s *ShorterService) GetURL(urlID string) (string, error) {
 	URL, err := s.repo.Get(urlID)
 	if err != nil {
