@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -33,6 +34,22 @@ func NewDBRepository(dbDsn string) (*DBRepository, error) {
 	if err != nil {
 		return nil, err
 	}
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+	err = db.PingContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	sqlBytes, err := os.ReadFile("../../migrations/000001_create_urls_table.up.sql")
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	_, _ = db.ExecContext(ctx, string(sqlBytes))
+	// if err != nil {
+	// 	return nil, err
+	// }
 	return &DBRepository{
 		dbDsn:        dbDsn,
 		dbConnection: db,

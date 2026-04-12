@@ -1,8 +1,11 @@
 package main
 
 import (
+	"bytes"
+	"compress/gzip"
 	"errors"
 	"io"
+	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -252,17 +255,20 @@ func TestGetURLHandler(t *testing.T) {
 
 func TestApiStorenHandler(t *testing.T) {
 	type want struct {
-		contentType string
-		statusCode  int
-		response    string
+		contentType     string
+		statusCode      int
+		response        string
+		contentEncoding string
 	}
 	tests := []struct {
-		name        string
-		contentType string
-		body        string
-		request     string
-		requestType string
-		want        want
+		name            string
+		contentType     string
+		acceptEncoding  string
+		contentEncoding string
+		body            string
+		request         string
+		requestType     string
+		want            want
 	}{
 		{
 			name:        "test 1 | Success",
@@ -277,19 +283,34 @@ func TestApiStorenHandler(t *testing.T) {
 			requestType: "POST",
 		},
 		{
-			name:        "test 2 | Unsuccess | Request type error",
+			name:            "test 2 | Success | With encodintg",
+			contentType:     "application/json",
+			acceptEncoding:  "gzip",
+			contentEncoding: "gzip",
+			body:            `{"url": "https://mockedurl.com"}`,
+			want: want{
+				contentType:     "application/json",
+				statusCode:      201,
+				response:        `{"result":"http://localhost:8080/AbCdEf"}` + "\n",
+				contentEncoding: "gzip",
+			},
+			request:     "/api/shorten",
+			requestType: "POST",
+		},
+		{
+			name:        "test 3 | Unsuccess | Request type error",
 			contentType: "application/json",
 			body:        `{"url": "https://mockedurl.com"}`,
 			want: want{
-				contentType: "text/plain; charset=utf-8",
-				statusCode:  400,
-				response:    "Method not allowed\n",
+				contentType: "",
+				statusCode:  405,
+				response:    "",
 			},
 			request:     "/api/shorten",
 			requestType: "GET",
 		},
 		{
-			name:        "test 3 | Unsuccess | Content-Type error",
+			name:        "test 4 | Unsuccess | Content-Type error",
 			contentType: "text/html",
 			body:        `{"url": "https://mockedurl.com"}`,
 			want: want{
@@ -301,7 +322,7 @@ func TestApiStorenHandler(t *testing.T) {
 			requestType: "POST",
 		},
 		{
-			name:        "test 4 | Unsuccess | URL is empty",
+			name:        "test 5 | Unsuccess | URL is empty",
 			contentType: "application/json",
 			body:        `{"url": ""}`,
 			want: want{
@@ -313,7 +334,7 @@ func TestApiStorenHandler(t *testing.T) {
 			requestType: "POST",
 		},
 		{
-			name:        "test 5 | Unsuccess | Json decode error",
+			name:        "test 6 | Unsuccess | Json decode error",
 			contentType: "application/json",
 			body:        `{"url": 123}`,
 			want: want{
@@ -331,18 +352,40 @@ func TestApiStorenHandler(t *testing.T) {
 		ServerHostPort:     "localhost:8080",
 		ShortenURLHostPort: "http://localhost:8080",
 	}
-	shorterService := service.NewShorterService(mockedRepository, mockedConfig)
-	requestsHandler := handler.NewRequestsHandler(shorterService)
+	app := NewApp(mockedRepository, *mockedConfig)
+	appHandler := app.GetHandler()
+	srv := httptest.NewServer((handler.GzipMiddleware(appHandler)))
+	defer srv.Close()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			request := httptest.NewRequest(tt.requestType, tt.request, strings.NewReader(tt.body))
-			request.Header.Set("Content-Type", tt.contentType)
-			w := httptest.NewRecorder()
-			requestsHandler.ApiShorten(w, request)
-			resBytes, _ := io.ReadAll(w.Body)
-			assert.Equal(t, tt.want.statusCode, w.Result().StatusCode)
+			var buf *bytes.Buffer
+			if tt.contentEncoding == "gzip" {
+				var b bytes.Buffer
+				zb := gzip.NewWriter(&b)
+				zb.Write([]byte(tt.body))
+				zb.Close()
+				buf = &b
+			} else {
+				buf = bytes.NewBufferString(tt.body)
+			}
+			r := httptest.NewRequest(tt.requestType, srv.URL+tt.request, buf)
+			r.RequestURI = ""
+			r.Header.Set("Content-Type", tt.contentType)
+			r.Header.Set("Accept-Encoding", tt.acceptEncoding)
+			r.Header.Set("Content-Encoding", tt.contentEncoding)
+			resp, _ := http.DefaultClient.Do(r)
+			var resBytes []byte
+			if tt.acceptEncoding == "gzip" {
+				zr, _ := gzip.NewReader(resp.Body)
+				resBytes, _ = io.ReadAll(zr)
+			} else {
+				resBytes, _ = io.ReadAll(resp.Body)
+			}
+			assert.Equal(t, tt.want.statusCode, resp.StatusCode)
 			assert.Equal(t, tt.want.response, string(resBytes))
-			assert.Equal(t, tt.want.contentType, w.Header().Get("Content-Type"))
+			assert.Equal(t, tt.want.contentType, resp.Header.Get("Content-Type"))
+			assert.Equal(t, tt.want.contentEncoding, resp.Header.Get("Content-Encoding"))
+			defer resp.Body.Close()
 		})
 	}
 }
