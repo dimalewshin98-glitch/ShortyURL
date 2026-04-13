@@ -14,6 +14,9 @@ func main() {
 	cfg := config.NewConfig()
 	var repo repository.RepositoryInterface
 	var err error
+	if err := logger.Initialize(cfg.LogLevel); err != nil {
+		panic(err)
+	}
 	switch cfg.RepositoryType {
 	case "file":
 		repo, err = repository.NewfileRepository(cfg.FileStoragePath)
@@ -22,16 +25,11 @@ func main() {
 	case "db":
 		repo, err = repository.NewDBRepository(cfg.DatabaseDsn)
 	}
+	logger.Log.Info("Repository type set to", zap.String("type", cfg.RepositoryType))
 	if err != nil {
 		panic(err)
 	}
-	if repo == nil {
-		panic("Repo init error")
-	}
 	app := NewApp(repo, *cfg)
-	if err := logger.Initialize(cfg.LogLevel); err != nil {
-		panic(err)
-	}
 	appHandler := app.GetHandler()
 	logger.Log.Info("Running server", zap.String("address", cfg.ServerHostPort))
 	err = http.ListenAndServe(cfg.ServerHostPort, logger.RequestLogger(handler.GzipMiddleware(appHandler)))

@@ -18,9 +18,8 @@ func NewConfig() *Config {
 	serverHostPort := flag.String("a", "localhost:8888", "server host:port")
 	shortenURLHostPort := flag.String("b", "http://localhost:8000", "shorten url http://host:port")
 	logLevel := flag.String("l", "info", "log level")
-	fileStoragePath := flag.String("f", "storage", "file storage path")
-	repositoryType := flag.String("r", "db", "repository type (file/memory/db)")
-	databaseDsn := flag.String("d", "localhost:5432", "databse destination (host/host:port)")
+	fileStoragePath := flag.String("f", "", "file storage path")
+	databaseDsn := flag.String("d", "", "databse destination (host/host:port)")
 	flag.Parse()
 	if envServerHostPort := os.Getenv("SERVER_ADDRESS"); envServerHostPort != "" {
 		*serverHostPort = envServerHostPort
@@ -34,18 +33,26 @@ func NewConfig() *Config {
 	if envFileStoragePath := os.Getenv("FILE_STORAGE_PATH"); envFileStoragePath != "" {
 		*fileStoragePath = envFileStoragePath
 	}
-	if envRepositoryType := os.Getenv("REPOSITORY_TYPE"); envRepositoryType != "" {
-		*repositoryType = envRepositoryType
-	}
 	if envDatabaseDsn := os.Getenv("DATABASE_DSN"); envDatabaseDsn != "" {
 		*databaseDsn = envDatabaseDsn
 	}
-	return &Config{
+	conf := &Config{
 		ServerHostPort:     *serverHostPort,
 		ShortenURLHostPort: *shortenURLHostPort,
 		LogLevel:           *logLevel,
 		FileStoragePath:    *fileStoragePath,
-		RepositoryType:     *repositoryType,
 		DatabaseDsn:        *databaseDsn,
 	}
+	conf.RepositoryType = conf.setRepositoryType(*fileStoragePath, *databaseDsn)
+	return conf
+}
+
+func (c *Config) setRepositoryType(fileStoragePath string, databaseDsn string) string {
+	if databaseDsn != "" {
+		return "db"
+	}
+	if fileStoragePath != "" {
+		return "file"
+	}
+	return "memory"
 }
