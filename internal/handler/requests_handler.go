@@ -1,9 +1,11 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
+	"time"
 
 	models "github.com/dimalewshin98-glitch/ShortyURL/internal/model"
 	"github.com/dimalewshin98-glitch/ShortyURL/internal/service"
@@ -20,11 +22,13 @@ func NewRequestsHandler(service service.ServiceInterface) *RequestsHandler {
 }
 
 func (s *RequestsHandler) Ping(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusBadRequest)
 		return
 	}
-	err := s.service.Ping()
+	err := s.service.Ping(ctx)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -33,6 +37,8 @@ func (s *RequestsHandler) Ping(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *RequestsHandler) GetURL(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusBadRequest)
 		return
@@ -42,7 +48,7 @@ func (s *RequestsHandler) GetURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	urlID := r.PathValue("id")
-	URL, err := s.service.GetURL(urlID)
+	URL, err := s.service.GetURL(ctx, urlID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -52,6 +58,8 @@ func (s *RequestsHandler) GetURL(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *RequestsHandler) Shorten(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusBadRequest)
 		return
@@ -71,7 +79,7 @@ func (s *RequestsHandler) Shorten(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "URL is empty", http.StatusBadRequest)
 		return
 	}
-	shortURL, err := s.service.Shorten(reqString)
+	shortURL, err := s.service.Shorten(ctx, reqString)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -82,6 +90,8 @@ func (s *RequestsHandler) Shorten(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *RequestsHandler) ApiShorten(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusBadRequest)
 		return
@@ -103,7 +113,7 @@ func (s *RequestsHandler) ApiShorten(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "URL is empty", http.StatusBadRequest)
 		return
 	}
-	shortURL, err := s.service.Shorten(URL)
+	shortURL, err := s.service.Shorten(ctx, URL)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return

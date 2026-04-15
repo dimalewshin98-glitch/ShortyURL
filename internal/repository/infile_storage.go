@@ -2,9 +2,12 @@ package repository
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"errors"
 	"os"
+
+	"github.com/google/uuid"
 )
 
 type Producer struct {
@@ -109,13 +112,13 @@ func NewfileRepository(fileStoragePath string) (*InfileRepository, error) {
 	}, err
 }
 
-func (r *InfileRepository) Ping() error {
+func (r *InfileRepository) Ping(ctx context.Context) error {
 	return nil
 }
 
-func (r *InfileRepository) Store(urlID string, URL string) (string, error) {
+func (r *InfileRepository) Store(ctx context.Context, urlID string, URL string) (string, error) {
 	element := URLelement{
-		UUID:        "0",
+		UUID:        uuid.New().String(),
 		ShortUrl:    urlID,
 		OriginalUrl: URL,
 	}
@@ -123,7 +126,7 @@ func (r *InfileRepository) Store(urlID string, URL string) (string, error) {
 	return urlID, nil
 }
 
-func (r *InfileRepository) Get(urlID string) (string, error) {
+func (r *InfileRepository) Get(ctx context.Context, urlID string) (string, error) {
 	element, err := r.consumer.ReadElement(urlID)
 	if err != nil {
 		return "", err

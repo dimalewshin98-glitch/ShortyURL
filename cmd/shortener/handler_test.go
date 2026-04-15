@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"errors"
 	"io"
 	"net/http"
@@ -23,11 +24,11 @@ type MockedInmemoryRepository struct {
 	*repository.InmemoryRepository
 }
 
-func (mir *MockedInmemoryRepository) Get(urlID string) (string, error) {
+func (mir *MockedInmemoryRepository) Get(ctx context.Context, urlID string) (string, error) {
 	return "https://mockedurl.com", nil
 }
 
-func (mir *MockedInmemoryRepository) Store(urlID string, URL string) (string, error) {
+func (mir *MockedInmemoryRepository) Store(ctx context.Context, urlID string, URL string) (string, error) {
 	return "AbCdEf", nil
 }
 
@@ -80,7 +81,7 @@ func TestPingHandler(t *testing.T) {
 			mockedRepository := mocks.NewMockRepositoryInterface(ctrl)
 			if tt.requestType == "GET" {
 				mockedRepository.EXPECT().
-					Ping().
+					Ping(gomock.Any()).
 					Return(tt.want.dbResponse)
 			}
 			mockedConfig := &config.Config{

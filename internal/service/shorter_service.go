@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"math/rand"
 
@@ -20,13 +21,13 @@ func NewShorterService(repo repository.RepositoryInterface, config *config.Confi
 	}
 }
 
-func (s *ShorterService) Ping() error {
-	err := s.repo.Ping()
+func (s *ShorterService) Ping(ctx context.Context) error {
+	err := s.repo.Ping(ctx)
 	return err
 }
 
-func (s *ShorterService) GetURL(urlID string) (string, error) {
-	URL, err := s.repo.Get(urlID)
+func (s *ShorterService) GetURL(ctx context.Context, urlID string) (string, error) {
+	URL, err := s.repo.Get(ctx, urlID)
 	if err != nil {
 		return "", err
 	}
@@ -36,8 +37,8 @@ func (s *ShorterService) GetURL(urlID string) (string, error) {
 	return URL, nil
 }
 
-func (s *ShorterService) Shorten(URL string) (string, error) {
-	urlID, err := s.repo.Store(s.generateShortURL(), URL)
+func (s *ShorterService) Shorten(ctx context.Context, URL string) (string, error) {
+	urlID, err := s.repo.Store(ctx, s.generateShortURL(), URL)
 	if err != nil {
 		return "", err
 	}
