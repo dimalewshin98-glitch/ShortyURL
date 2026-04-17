@@ -6,7 +6,9 @@ import (
 	"math/rand"
 
 	"github.com/dimalewshin98-glitch/ShortyURL/internal/config"
+	models "github.com/dimalewshin98-glitch/ShortyURL/internal/model"
 	"github.com/dimalewshin98-glitch/ShortyURL/internal/repository"
+	"github.com/google/uuid"
 )
 
 type ShorterService struct {
@@ -43,6 +45,24 @@ func (s *ShorterService) Shorten(ctx context.Context, URL string) (string, error
 		return "", err
 	}
 	return s.config.ShortenURLHostPort + "/" + urlID, nil
+}
+
+func (s *ShorterService) ShortenBatch(ctx context.Context, reqData models.ApiShortenBatchReq) (models.ApiShortenBatchRes, error) {
+	ctxUUID := uuid.New().String()
+	ctxVal := context.WithValue(ctx, "UUID", ctxUUID)
+	resData := models.ApiShortenBatchRes{}
+	for i := range reqData {
+		if i == len(reqData)-1 {
+			ctxVal = context.WithValue(ctxVal, "isLastReq", true)
+		}
+		urlID, err := s.repo.Store(ctxVal, s.generateShortURL(), reqData[i].OriginalURL)
+		if err != nil {
+			return models.ApiShortenBatchRes{}, err
+		}
+		shortURL := s.config.ShortenURLHostPort + "/" + urlID
+		resData = append(resData, models.BatchItemRes{CorrelationID: reqData[i].CorrelationID, ShortURL: shortURL})
+	}
+	return resData, nil
 }
 
 func (s *ShorterService) generateShortURL() string {

@@ -100,6 +100,146 @@ func TestPingHandler(t *testing.T) {
 	}
 }
 
+func TestApiShortenBatchHandler(t *testing.T) {
+	type want struct {
+		contentType     string
+		statusCode      int
+		response        string
+		contentEncoding string
+	}
+	tests := []struct {
+		name            string
+		contentType     string
+		acceptEncoding  string
+		contentEncoding string
+		body            string
+		request         string
+		requestType     string
+		want            want
+	}{
+		{
+			name:        "test 1 | Success",
+			contentType: "application/json",
+			body: `[
+						{
+							"correlation_id": "aaa",
+							"original_url": "urlAA"
+						},
+						{
+							"correlation_id": "aaa",
+							"original_url": "urlAA"
+						}
+					] `,
+			want: want{
+				contentType: "application/json",
+				statusCode:  201,
+				response:    `[{"correlation_id":"aaa","short_url":"http://localhost:8080/http://localhost:8000/bjjBrD"},{"correlation_id":"aaa","short_url":"http://localhost:8080/http://localhost:8000/bjjBrD"}]` + "\n",
+			},
+			request:     "/api/shorten/batch",
+			requestType: "POST",
+		},
+		{
+			name:            "test 2 | Success | With encodintg",
+			contentType:     "application/json",
+			acceptEncoding:  "gzip",
+			contentEncoding: "gzip",
+			body: `[
+						{
+							"correlation_id": "aaa",
+							"original_url": "urlAA"
+						},
+						{
+							"correlation_id": "aaa",
+							"original_url": "urlAA"
+						}
+					] `,
+			want: want{
+				contentType:     "application/json",
+				statusCode:      201,
+				response:        `[{"correlation_id":"aaa","short_url":"http://localhost:8080/http://localhost:8000/bjjBrD"},{"correlation_id":"aaa","short_url":"http://localhost:8080/http://localhost:8000/bjjBrD"}]` + "\n",
+				contentEncoding: "gzip",
+			},
+			request:     "/api/shorten/batch",
+			requestType: "POST",
+		},
+		{
+			name:        "test 3 | Unsuccess | Request type error",
+			contentType: "application/json",
+			body:        `{"url": "https://mockedurl.com"}`,
+			want: want{
+				contentType: "",
+				statusCode:  400,
+				response:    "Method not allowed\n",
+			},
+			request:     "/api/shorten/batch",
+			requestType: "GET",
+		},
+		{
+			name:        "test 4 | Unsuccess | Content-Type error",
+			contentType: "text/html",
+			body:        `{"url": "https://mockedurl.com"}`,
+			want: want{
+				contentType: "text/plain; charset=utf-8",
+				statusCode:  400,
+				response:    "Content-Type not allowed\n",
+			},
+			request:     "/api/shorten/batch",
+			requestType: "POST",
+		},
+		{
+			name:        "test 5 | Unsuccess | Batch is empty",
+			contentType: "application/json",
+			body:        `[]`,
+			want: want{
+				contentType: "text/plain; charset=utf-8",
+				statusCode:  400,
+				response:    "Batch is empty\n",
+			},
+			request:     "/api/shorten/batch",
+			requestType: "POST",
+		},
+		{
+			name:        "test 6 | Unsuccess | Json decode error",
+			contentType: "application/json",
+			body:        `{"url": 123}`,
+			want: want{
+				contentType: "text/plain; charset=utf-8",
+				statusCode:  400,
+				response:    "Json request decode error\n",
+			},
+			request:     "/api/shorten/batch",
+			requestType: "POST",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			mockedRepository := mocks.NewMockRepositoryInterface(ctrl)
+			if tt.requestType == "POST" && tt.want.statusCode != 400 {
+				mockedRepository.EXPECT().
+					Store(gomock.Any(), gomock.Any(), "urlAA").
+					Return("http://localhost:8000/bjjBrD", nil).
+					Times(2)
+			}
+			mockedConfig := &config.Config{
+				ServerHostPort:     "localhost:8080",
+				ShortenURLHostPort: "http://localhost:8080",
+			}
+			shorterService := service.NewShorterService(mockedRepository, mockedConfig)
+			requestsHandler := handler.NewRequestsHandler(shorterService)
+			request := httptest.NewRequest(tt.requestType, tt.request, strings.NewReader(tt.body))
+			request.Header.Set("content-Type", tt.contentType)
+			request.Header.Set("Accept-Encoding", tt.acceptEncoding)
+			request.Header.Set("Content-Encoding", tt.contentEncoding)
+			w := httptest.NewRecorder()
+			requestsHandler.ApiShortenBatch(w, request)
+			resBytes, _ := io.ReadAll(w.Body)
+			assert.Equal(t, tt.want.statusCode, w.Result().StatusCode)
+			assert.Equal(t, tt.want.response, string(resBytes))
+		})
+	}
+}
+
 func TestStorenHandler(t *testing.T) {
 	type want struct {
 		contentType string

@@ -100,7 +100,7 @@ func (s *RequestsHandler) ApiShorten(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Content-Type not allowed", http.StatusBadRequest)
 		return
 	}
-	var req models.ApiRequest
+	var req models.ApiShortenReq
 	dec := json.NewDecoder(r.Body)
 	defer r.Body.Close()
 	err := dec.Decode(&req)
@@ -118,8 +118,46 @@ func (s *RequestsHandler) ApiShorten(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	res := models.ApiResponse{
+	res := models.ApiShortenRes{
 		Result: shortURL,
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	enc := json.NewEncoder(w)
+	err = enc.Encode(res)
+	if err != nil {
+		http.Error(w, "Json response encode error", http.StatusBadRequest)
+		return
+	}
+}
+
+func (s *RequestsHandler) ApiShortenBatch(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusBadRequest)
+		return
+	}
+	if r.Header.Get("Content-Type") != "application/json" {
+		http.Error(w, "Content-Type not allowed", http.StatusBadRequest)
+		return
+	}
+	var req models.ApiShortenBatchReq
+	dec := json.NewDecoder(r.Body)
+	defer r.Body.Close()
+	err := dec.Decode(&req)
+	if err != nil {
+		http.Error(w, "Json request decode error", http.StatusBadRequest)
+		return
+	}
+	if len(req) == 0 {
+		http.Error(w, "Batch is empty", http.StatusBadRequest)
+		return
+	}
+	res, err := s.service.ShortenBatch(ctx, req)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)

@@ -17,7 +17,7 @@ import (
 type DBRepository struct {
 	dbDsn        string
 	dbConnection *sql.DB
-	urls         map[string]string
+	txMap        map[string]*sql.Tx
 }
 
 func NewDBRepository(dbDsn string) (*DBRepository, error) {
@@ -41,7 +41,7 @@ func NewDBRepository(dbDsn string) (*DBRepository, error) {
 	dbRepository := &DBRepository{
 		dbDsn:        dbDsn,
 		dbConnection: db,
-		urls:         make(map[string]string)}
+		txMap:        make(map[string]*sql.Tx)}
 	err = dbRepository.Ping(ctx)
 	if err != nil {
 		return nil, err
@@ -91,20 +91,63 @@ func (r *DBRepository) Ping(ctx context.Context) error {
 }
 
 func (r *DBRepository) Store(ctx context.Context, urlID string, URL string) (string, error) {
-	tx, err := r.dbConnection.BeginTx(ctx, nil)
-	if err != nil {
-		return urlID, err
-	}
-	UUID := uuid.New().String()
-	sqlInsert := "INSERT INTO urls (uuid, short_url, original_url) VALUES ($1, $2, $3)"
-	_, err = tx.ExecContext(ctx, sqlInsert, UUID, urlID, URL)
-	if err != nil {
-		if rbErr := tx.Rollback(); rbErr != nil {
-			return urlID, rbErr
+	var ctxUUID string
+	var singleReq bool
+	var isLastReq bool
+	var err error
+	var tx *sql.Tx
+	if ctx.Value("UUID") == nil {
+		ctxUUID = ""
+		singleReq = true
+		isLastReq = true
+	} else {
+		ctxUUID = ctx.Value("UUID").(string)
+		singleReq = false
+		if ctx.Value("isLastReq") == nil {
+			isLastReq = false
+		} else {
+			isLastReq = ctx.Value("isLastReq").(bool)
 		}
-		return urlID, err
 	}
-	return urlID, tx.Commit()
+	if singleReq {
+		tx = nil
+	} else {
+		tx = r.txMap[ctxUUID]
+	}
+	if tx == nil {
+		tx, err = r.dbConnection.BeginTx(ctx, nil)
+		if err != nil {
+			return urlID, err
+		}
+	}
+	if !singleReq {
+		r.txMap[ctxUUID] = tx
+	}
+	select {
+	case <-ctx.Done():
+		rbErr := tx.Rollback()
+		if !singleReq {
+			delete(r.txMap, ctxUUID)
+		}
+		return urlID, rbErr
+	default:
+		sqlInsert := "INSERT INTO urls (uuid, short_url, original_url) VALUES ($1, $2, $3)"
+		_, err = tx.ExecContext(ctx, sqlInsert, uuid.New().String(), urlID, URL)
+		if err != nil {
+			if rbErr := tx.Rollback(); rbErr != nil {
+				return urlID, rbErr
+			}
+			return urlID, err
+		}
+		if isLastReq {
+			err = tx.Commit()
+			if !singleReq {
+				delete(r.txMap, ctxUUID)
+			}
+			return urlID, err
+		}
+	}
+	return urlID, nil
 }
 
 func (r *DBRepository) Get(ctx context.Context, urlID string) (string, error) {
