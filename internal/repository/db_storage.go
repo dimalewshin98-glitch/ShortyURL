@@ -81,6 +81,17 @@ func (r *DBRepository) CreateTables(ctx context.Context) error {
 			}
 			return err
 		}
+		sqlReqBytes, err = os.ReadFile("../../migrations/000002_add_unique_index_to_orig_url.up.sql")
+		if err != nil {
+			return err
+		}
+		_, err = tx.ExecContext(ctx, string(sqlReqBytes))
+		if err != nil {
+			if rbErr := tx.Rollback(); rbErr != nil {
+				return rbErr
+			}
+			return err
+		}
 	}
 	return tx.Commit()
 }
@@ -131,23 +142,46 @@ func (r *DBRepository) Store(ctx context.Context, urlID string, URL string) (str
 		}
 		return urlID, rbErr
 	default:
-		sqlInsert := "INSERT INTO urls (uuid, short_url, original_url) VALUES ($1, $2, $3)"
-		_, err = tx.ExecContext(ctx, sqlInsert, uuid.New().String(), urlID, URL)
+		sqlInsert := "INSERT INTO urls (uuid, short_url, original_url) VALUES ($1, $2, $3) ON CONFLICT (original_url) DO NOTHING RETURNING uuid"
+		var UUID string
+		isExistsURL := false
+		row := tx.QueryRowContext(ctx, sqlInsert, uuid.New().String(), urlID, URL)
+		err = row.Scan(&UUID)
 		if err != nil {
-			if rbErr := tx.Rollback(); rbErr != nil {
-				return urlID, rbErr
+			if err == sql.ErrNoRows {
+				isExistsURL = true
+			} else {
+				if rbErr := tx.Rollback(); rbErr != nil {
+					return urlID, rbErr
+				}
+				return urlID, err
 			}
-			return urlID, err
+		}
+		if isExistsURL {
+			sqlSelect := "SELECT short_url FROM urls WHERE original_url = $1"
+			row := r.dbConnection.QueryRowContext(ctx, sqlSelect, URL)
+			err = row.Scan(&urlID)
+			if err != nil {
+				if rbErr := tx.Rollback(); rbErr != nil {
+					return urlID, rbErr
+				}
+				return urlID, err
+			}
+			err = errors.New("Short URL already exists")
 		}
 		if isLastReq {
-			err = tx.Commit()
+			commitErr := tx.Commit()
 			if !singleReq {
 				delete(r.txMap, ctxUUID)
 			}
-			return urlID, err
+			if commitErr == nil {
+				return urlID, err
+			} else {
+				return urlID, commitErr
+			}
 		}
+		return urlID, err
 	}
-	return urlID, nil
 }
 
 func (r *DBRepository) Get(ctx context.Context, urlID string) (string, error) {

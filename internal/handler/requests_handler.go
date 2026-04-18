@@ -80,12 +80,17 @@ func (s *RequestsHandler) Shorten(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	shortURL, err := s.service.Shorten(ctx, reqString)
+	resHeader := http.StatusCreated
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+		if err.Error() == "Short URL already exists" {
+			resHeader = http.StatusConflict
+		} else {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
 	}
+	w.WriteHeader(resHeader)
 	w.Header().Set("Content-Type", "text/plain")
-	w.WriteHeader(http.StatusCreated)
 	w.Write([]byte(shortURL))
 }
 
@@ -114,15 +119,20 @@ func (s *RequestsHandler) ApiShorten(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	shortURL, err := s.service.Shorten(ctx, URL)
+	resHeader := http.StatusCreated
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+		if err.Error() == "Short URL already exists" {
+			resHeader = http.StatusConflict
+		} else {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
 	}
 	res := models.ApiShortenRes{
 		Result: shortURL,
 	}
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(resHeader)
 	enc := json.NewEncoder(w)
 	err = enc.Encode(res)
 	if err != nil {
@@ -155,7 +165,7 @@ func (s *RequestsHandler) ApiShortenBatch(w http.ResponseWriter, r *http.Request
 		return
 	}
 	res, err := s.service.ShortenBatch(ctx, req)
-	if err != nil {
+	if err != nil && err.Error() != "Short URL already exists" {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
