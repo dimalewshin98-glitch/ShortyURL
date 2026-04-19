@@ -89,8 +89,8 @@ func (s *RequestsHandler) Shorten(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	w.WriteHeader(resHeader)
 	w.Header().Set("Content-Type", "text/plain")
+	w.WriteHeader(resHeader)
 	w.Write([]byte(shortURL))
 }
 
