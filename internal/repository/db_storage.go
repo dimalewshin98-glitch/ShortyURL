@@ -101,7 +101,7 @@ func (r *DBRepository) Ping(ctx context.Context) error {
 	return err
 }
 
-func (r *DBRepository) Store(ctx context.Context, urlID string, URL string) (string, error) {
+func (r *DBRepository) Store(ctx context.Context, userID string, urlID string, URL string) (string, error) {
 	var ctxUUID string
 	var singleReq bool
 	var isLastReq bool

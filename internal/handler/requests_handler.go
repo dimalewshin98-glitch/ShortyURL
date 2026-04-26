@@ -58,6 +58,7 @@ func (s *RequestsHandler) GetURL(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *RequestsHandler) Shorten(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value("userID").(string)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if r.Method != http.MethodPost {
@@ -79,7 +80,7 @@ func (s *RequestsHandler) Shorten(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "URL is empty", http.StatusBadRequest)
 		return
 	}
-	shortURL, err := s.service.Shorten(ctx, reqString)
+	shortURL, err := s.service.Shorten(ctx, userID, reqString)
 	resHeader := http.StatusCreated
 	if err != nil {
 		if err.Error() == "Short URL already exists" {
@@ -95,6 +96,7 @@ func (s *RequestsHandler) Shorten(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *RequestsHandler) ApiShorten(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value("userID").(string)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if r.Method != http.MethodPost {
@@ -118,7 +120,7 @@ func (s *RequestsHandler) ApiShorten(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "URL is empty", http.StatusBadRequest)
 		return
 	}
-	shortURL, err := s.service.Shorten(ctx, URL)
+	shortURL, err := s.service.Shorten(ctx, userID, URL)
 	resHeader := http.StatusCreated
 	if err != nil {
 		if err.Error() == "Short URL already exists" {
@@ -142,6 +144,7 @@ func (s *RequestsHandler) ApiShorten(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *RequestsHandler) ApiShortenBatch(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value("userID").(string)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if r.Method != http.MethodPost {
@@ -164,7 +167,7 @@ func (s *RequestsHandler) ApiShortenBatch(w http.ResponseWriter, r *http.Request
 		http.Error(w, "Batch is empty", http.StatusBadRequest)
 		return
 	}
-	res, err := s.service.ShortenBatch(ctx, req)
+	res, err := s.service.ShortenBatch(ctx, userID, req)
 	if err != nil && err.Error() != "Short URL already exists" {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return

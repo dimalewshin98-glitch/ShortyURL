@@ -9,7 +9,10 @@ require (
 	go.uber.org/zap v1.27.1
 )
 
-require github.com/golang-migrate/migrate/v4 v4.19.1 // indirect
+require (
+	github.com/golang-jwt/jwt/v4 v4.5.2 // indirect
+	github.com/golang-migrate/migrate/v4 v4.19.1 // indirect
+)
 
 require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect

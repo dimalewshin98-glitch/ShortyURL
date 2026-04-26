@@ -88,6 +88,7 @@ type URLelement struct {
 	UUID        string `json:"uuid"`
 	ShortUrl    string `json:"short_url"`
 	OriginalUrl string `json:"original_url"`
+	UserID      string `json:"user_id"`
 }
 
 type InfileRepository struct {
@@ -116,11 +117,12 @@ func (r *InfileRepository) Ping(ctx context.Context) error {
 	return nil
 }
 
-func (r *InfileRepository) Store(ctx context.Context, urlID string, URL string) (string, error) {
+func (r *InfileRepository) Store(ctx context.Context, userID string, urlID string, URL string) (string, error) {
 	element := URLelement{
 		UUID:        uuid.New().String(),
 		ShortUrl:    urlID,
 		OriginalUrl: URL,
+		UserID:      userID,
 	}
 	r.producer.WriteElement(&element)
 	return urlID, nil

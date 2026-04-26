@@ -39,15 +39,15 @@ func (s *ShorterService) GetURL(ctx context.Context, urlID string) (string, erro
 	return URL, nil
 }
 
-func (s *ShorterService) Shorten(ctx context.Context, URL string) (string, error) {
-	urlID, err := s.repo.Store(ctx, s.generateShortURL(), URL)
+func (s *ShorterService) Shorten(ctx context.Context, userID string, URL string) (string, error) {
+	urlID, err := s.repo.Store(ctx, userID, s.generateShortURL(), URL)
 	if err != nil && err.Error() != "Short URL already exists" {
 		return "", err
 	}
 	return s.config.ShortenURLHostPort + "/" + urlID, err
 }
 
-func (s *ShorterService) ShortenBatch(ctx context.Context, reqData models.ApiShortenBatchReq) (models.ApiShortenBatchRes, error) {
+func (s *ShorterService) ShortenBatch(ctx context.Context, userID string, reqData models.ApiShortenBatchReq) (models.ApiShortenBatchRes, error) {
 	var err error = nil
 	ctxUUID := uuid.New().String()
 	ctxVal := context.WithValue(ctx, "UUID", ctxUUID)
@@ -56,7 +56,7 @@ func (s *ShorterService) ShortenBatch(ctx context.Context, reqData models.ApiSho
 		if i == len(reqData)-1 {
 			ctxVal = context.WithValue(ctxVal, "isLastReq", true)
 		}
-		urlID, err := s.repo.Store(ctxVal, s.generateShortURL(), reqData[i].OriginalURL)
+		urlID, err := s.repo.Store(ctxVal, userID, s.generateShortURL(), reqData[i].OriginalURL)
 		if err != nil && err.Error() != "Short URL already exists" {
 			return models.ApiShortenBatchRes{}, err
 		}
