@@ -14,6 +14,7 @@ import (
 	"github.com/dimalewshin98-glitch/ShortyURL/internal/config"
 	"github.com/dimalewshin98-glitch/ShortyURL/internal/handler"
 	"github.com/dimalewshin98-glitch/ShortyURL/internal/mocks"
+	models "github.com/dimalewshin98-glitch/ShortyURL/internal/model"
 	"github.com/dimalewshin98-glitch/ShortyURL/internal/repository"
 	"github.com/dimalewshin98-glitch/ShortyURL/internal/service"
 	"github.com/golang/mock/gomock"
@@ -28,8 +29,23 @@ func (mir *MockedInmemoryRepository) Get(ctx context.Context, urlID string) (str
 	return "https://mockedurl.com", nil
 }
 
-func (mir *MockedInmemoryRepository) Store(ctx context.Context, urlID string, URL string) (string, error) {
+func (mir *MockedInmemoryRepository) Store(ctx context.Context, userID int, urlID string, URL string) (string, error) {
 	return "AbCdEf", nil
+}
+
+func (mir *MockedInmemoryRepository) GetUserUrls(ctx context.Context, userID int) (models.ApiUserUrlsRes, error) {
+	var res models.ApiUserUrlsRes
+	res = append(res, models.UserUrlRes{ShortURL: "a", OriginalURL: "b"})
+	res = append(res, models.UserUrlRes{ShortURL: "c", OriginalURL: "d"})
+	return res, nil
+}
+
+func (mir *MockedInmemoryRepository) Ping(ctx context.Context) error {
+	return nil
+}
+
+func (mir *MockedInmemoryRepository) GetUsersID(ctx context.Context) ([]int, error) {
+	return []int{1, 2, 3}, nil
 }
 
 func TestPingHandler(t *testing.T) {
@@ -133,7 +149,7 @@ func TestApiShortenBatchHandler(t *testing.T) {
 			want: want{
 				contentType: "application/json",
 				statusCode:  201,
-				response:    `[{"correlation_id":"aaa","short_url":"http://localhost:8080/http://localhost:8000/bjjBrD"},{"correlation_id":"aaa","short_url":"http://localhost:8080/http://localhost:8000/bjjBrD"}]` + "\n",
+				response:    `[{"correlation_id":"aaa","short_url":"http://localhost:8080/bjjBrD"},{"correlation_id":"aaa","short_url":"http://localhost:8080/bjjBrD"}]` + "\n",
 			},
 			request:     "/api/shorten/batch",
 			requestType: "POST",
@@ -156,7 +172,7 @@ func TestApiShortenBatchHandler(t *testing.T) {
 			want: want{
 				contentType:     "application/json",
 				statusCode:      201,
-				response:        `[{"correlation_id":"aaa","short_url":"http://localhost:8080/http://localhost:8000/bjjBrD"},{"correlation_id":"aaa","short_url":"http://localhost:8080/http://localhost:8000/bjjBrD"}]` + "\n",
+				response:        `[{"correlation_id":"aaa","short_url":"http://localhost:8080/bjjBrD"},{"correlation_id":"aaa","short_url":"http://localhost:8080/bjjBrD"}]` + "\n",
 				contentEncoding: "gzip",
 			},
 			request:     "/api/shorten/batch",
@@ -215,10 +231,14 @@ func TestApiShortenBatchHandler(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			mockedRepository := mocks.NewMockRepositoryInterface(ctrl)
+			mockedRepository.EXPECT().
+				GetUsersID(gomock.Any()).
+				Return([]int{1, 2, 3}, nil).
+				AnyTimes()
 			if tt.requestType == "POST" && tt.want.statusCode != 400 {
 				mockedRepository.EXPECT().
-					Store(gomock.Any(), gomock.Any(), "urlAA").
-					Return("http://localhost:8000/bjjBrD", nil).
+					Store(gomock.Any(), 4, gomock.Any(), "urlAA").
+					Return("bjjBrD", nil).
 					Times(2)
 			}
 			mockedConfig := &config.Config{
@@ -227,12 +247,14 @@ func TestApiShortenBatchHandler(t *testing.T) {
 			}
 			shorterService := service.NewShorterService(mockedRepository, mockedConfig)
 			requestsHandler := handler.NewRequestsHandler(shorterService)
+			appHandler := http.HandlerFunc(requestsHandler.ApiShortenBatch)
+			handlerWithMiddleware := handler.AuthMiddleware(appHandler, mockedRepository)
 			request := httptest.NewRequest(tt.requestType, tt.request, strings.NewReader(tt.body))
 			request.Header.Set("content-Type", tt.contentType)
 			request.Header.Set("Accept-Encoding", tt.acceptEncoding)
 			request.Header.Set("Content-Encoding", tt.contentEncoding)
 			w := httptest.NewRecorder()
-			requestsHandler.ApiShortenBatch(w, request)
+			handlerWithMiddleware.ServeHTTP(w, request)
 			resBytes, _ := io.ReadAll(w.Body)
 			assert.Equal(t, tt.want.statusCode, w.Result().StatusCode)
 			assert.Equal(t, tt.want.response, string(resBytes))
@@ -257,11 +279,11 @@ func TestStorenHandler(t *testing.T) {
 		{
 			name:        "test 1 | Success",
 			contentType: "text/plain",
-			body:        "https://mockedurl.com",
+			body:        "urlAA",
 			want: want{
 				contentType: "text/plain",
 				statusCode:  201,
-				response:    "http://localhost:8080/AbCdEf",
+				response:    "http://localhost:8080/bjjBrD",
 			},
 			request:     "/",
 			requestType: "POST",
@@ -303,20 +325,32 @@ func TestStorenHandler(t *testing.T) {
 			requestType: "POST",
 		},
 	}
-	repository := repository.NewInmemoryRepository()
-	mockedRepository := &MockedInmemoryRepository{repository}
-	mockedConfig := &config.Config{
-		ServerHostPort:     "localhost:8080",
-		ShortenURLHostPort: "http://localhost:8080",
-	}
-	shorterService := service.NewShorterService(mockedRepository, mockedConfig)
-	requestsHandler := handler.NewRequestsHandler(shorterService)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			mockedRepository := mocks.NewMockRepositoryInterface(ctrl)
+			mockedRepository.EXPECT().
+				GetUsersID(gomock.Any()).
+				Return([]int{1, 2, 3}, nil).
+				AnyTimes()
+			if tt.requestType == "POST" && tt.want.statusCode != 400 {
+				mockedRepository.EXPECT().
+					Store(gomock.Any(), 4, gomock.Any(), "urlAA").
+					Return("bjjBrD", nil).
+					Times(1)
+			}
+			mockedConfig := &config.Config{
+				ServerHostPort:     "localhost:8080",
+				ShortenURLHostPort: "http://localhost:8080",
+			}
+			shorterService := service.NewShorterService(mockedRepository, mockedConfig)
+			requestsHandler := handler.NewRequestsHandler(shorterService)
+			appHandler := http.HandlerFunc(requestsHandler.Shorten)
+			handlerWithMiddleware := handler.AuthMiddleware(appHandler, mockedRepository)
 			request := httptest.NewRequest(tt.requestType, tt.request, strings.NewReader(tt.body))
-			request.Header.Set("Content-Type", tt.contentType)
+			request.Header.Set("content-Type", tt.contentType)
 			w := httptest.NewRecorder()
-			requestsHandler.Shorten(w, request)
+			handlerWithMiddleware.ServeHTTP(w, request)
 			resBytes, _ := io.ReadAll(w.Body)
 			assert.Equal(t, tt.want.statusCode, w.Result().StatusCode)
 			assert.Equal(t, tt.want.response, string(resBytes))
@@ -372,20 +406,32 @@ func TestGetURLHandler(t *testing.T) {
 			requestType: "GET",
 		},
 	}
-	repository := repository.NewInmemoryRepository()
-	mockedRepository := &MockedInmemoryRepository{repository}
-	mockedConfig := &config.Config{
-		ServerHostPort:     "localhost:8080",
-		ShortenURLHostPort: "http://localhost:8080",
-	}
-	shorterService := service.NewShorterService(mockedRepository, mockedConfig)
-	requestsHandler := handler.NewRequestsHandler(shorterService)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			request := httptest.NewRequest(tt.requestType, tt.request, nil)
-			request.Header.Set("Content-Type", tt.contentType)
+			ctrl := gomock.NewController(t)
+			mockedRepository := mocks.NewMockRepositoryInterface(ctrl)
+			mockedRepository.EXPECT().
+				GetUsersID(gomock.Any()).
+				Return([]int{1, 2, 3}, nil).
+				AnyTimes()
+			if tt.requestType == "GET" && tt.want.statusCode != 400 {
+				mockedRepository.EXPECT().
+					Get(gomock.Any(), gomock.Any()).
+					Return("https://mockedurl.com", nil).
+					Times(1)
+			}
+			mockedConfig := &config.Config{
+				ServerHostPort:     "localhost:8080",
+				ShortenURLHostPort: "http://localhost:8080",
+			}
+			shorterService := service.NewShorterService(mockedRepository, mockedConfig)
+			requestsHandler := handler.NewRequestsHandler(shorterService)
+			appHandler := http.HandlerFunc(requestsHandler.GetURL)
+			handlerWithMiddleware := handler.AuthMiddleware(appHandler, mockedRepository)
+			request := httptest.NewRequest(tt.requestType, tt.request, strings.NewReader(""))
+			request.Header.Set("content-Type", tt.contentType)
 			w := httptest.NewRecorder()
-			requestsHandler.GetURL(w, request)
+			handlerWithMiddleware.ServeHTTP(w, request)
 			resBytes, _ := io.ReadAll(w.Body)
 			assert.Equal(t, tt.want.statusCode, w.Result().StatusCode)
 			assert.Equal(t, tt.want.response, string(resBytes))
@@ -394,6 +440,76 @@ func TestGetURLHandler(t *testing.T) {
 	}
 }
 
+func TestGetUserURLsHandler(t *testing.T) {
+	type want struct {
+		statusCode int
+		response   string
+		location   string
+	}
+	tests := []struct {
+		name        string
+		contentType string
+		request     string
+		requestType string
+		want        want
+	}{
+		{
+			name: "test 1 | Success",
+			want: want{
+				statusCode: 200,
+				response: `[{"short_url":"a","original_url":"b"},{"short_url":"c","original_url":"d"}]` + "\n",
+			},
+			request:     "/api/user/urls",
+			requestType: "GET",
+		},
+		{
+			name:        "test 2 | Unsuccess | No content",
+			contentType: "text/html",
+			want: want{
+				statusCode: 204,
+				response:   "",
+				location:   "",
+			},
+			request:     "/api/user/urls",
+			requestType: "GET",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			mockedRepository := mocks.NewMockRepositoryInterface(ctrl)
+			mockedRepository.EXPECT().
+				GetUsersID(gomock.Any()).
+				Return([]int{1, 2, 3}, nil).
+				AnyTimes()
+			if tt.requestType == "GET" && tt.want.statusCode != 400 {
+				var res models.ApiUserUrlsRes
+				if tt.want.statusCode == 200{
+					res = append(res, models.UserUrlRes{ShortURL: "a", OriginalURL: "b"})
+					res = append(res, models.UserUrlRes{ShortURL: "c", OriginalURL: "d"})
+				}
+				mockedRepository.EXPECT().
+				GetUserUrls(gomock.Any(), gomock.Any()).
+				Return(res, nil).
+				Times(1)
+			}
+			mockedConfig := &config.Config{
+				ServerHostPort:     "localhost:8080",
+				ShortenURLHostPort: "http://localhost:8080",
+			}
+			shorterService := service.NewShorterService(mockedRepository, mockedConfig)
+			requestsHandler := handler.NewRequestsHandler(shorterService)
+			appHandler := http.HandlerFunc(requestsHandler.ApiUserUrls)
+			handlerWithMiddleware := handler.AuthMiddleware(appHandler, mockedRepository)
+			request := httptest.NewRequest(tt.requestType, tt.request, strings.NewReader(""))
+			w := httptest.NewRecorder()
+			handlerWithMiddleware.ServeHTTP(w, request)
+			resBytes, _ := io.ReadAll(w.Body)
+			assert.Equal(t, tt.want.statusCode, w.Result().StatusCode)
+			assert.Equal(t, tt.want.response, string(resBytes))
+		})
+	}
+}
 func TestApiStorenHandler(t *testing.T) {
 	type want struct {
 		contentType     string
@@ -495,7 +611,7 @@ func TestApiStorenHandler(t *testing.T) {
 	}
 	app := NewApp(mockedRepository, *mockedConfig)
 	appHandler := app.GetHandler()
-	srv := httptest.NewServer((handler.GzipMiddleware(appHandler)))
+	srv := httptest.NewServer((handler.GzipMiddleware(handler.AuthMiddleware(appHandler, repository))))
 	defer srv.Close()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

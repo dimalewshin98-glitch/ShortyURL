@@ -10,9 +10,12 @@ import (
 	"strings"
 	"time"
 
+	models "github.com/dimalewshin98-glitch/ShortyURL/internal/model"
 	"github.com/google/uuid"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
+
+var ErrShortURLExists = errors.New("short URL already exists")
 
 type DBRepository struct {
 	dbDsn        string
@@ -92,6 +95,17 @@ func (r *DBRepository) CreateTables(ctx context.Context) error {
 			}
 			return err
 		}
+		sqlReqBytes, err = os.ReadFile("../../migrations/000003_add_user_id_column.up.sql")
+		if err != nil {
+			return err
+		}
+		_, err = tx.ExecContext(ctx, string(sqlReqBytes))
+		if err != nil {
+			if rbErr := tx.Rollback(); rbErr != nil {
+				return rbErr
+			}
+			return err
+		}
 	}
 	return tx.Commit()
 }
@@ -101,7 +115,7 @@ func (r *DBRepository) Ping(ctx context.Context) error {
 	return err
 }
 
-func (r *DBRepository) Store(ctx context.Context, userID string, urlID string, URL string) (string, error) {
+func (r *DBRepository) Store(ctx context.Context, userID int, urlID string, URL string) (string, error) {
 	var ctxUUID string
 	var singleReq bool
 	var isLastReq bool
@@ -142,10 +156,10 @@ func (r *DBRepository) Store(ctx context.Context, userID string, urlID string, U
 		}
 		return urlID, rbErr
 	default:
-		sqlInsert := "INSERT INTO urls (uuid, short_url, original_url) VALUES ($1, $2, $3) ON CONFLICT (original_url) DO NOTHING RETURNING uuid"
+		sqlInsert := "INSERT INTO urls (uuid, short_url, original_url, user_id) VALUES ($1, $2, $3, $4) ON CONFLICT (original_url) DO NOTHING RETURNING uuid"
 		var UUID string
 		isExistsURL := false
-		row := tx.QueryRowContext(ctx, sqlInsert, uuid.New().String(), urlID, URL)
+		row := tx.QueryRowContext(ctx, sqlInsert, uuid.New().String(), urlID, URL, userID)
 		err = row.Scan(&UUID)
 		if err != nil {
 			if err == sql.ErrNoRows {
@@ -167,7 +181,7 @@ func (r *DBRepository) Store(ctx context.Context, userID string, urlID string, U
 				}
 				return urlID, err
 			}
-			err = errors.New("Short URL already exists")
+			err = ErrShortURLExists
 		}
 		if isLastReq {
 			commitErr := tx.Commit()
@@ -196,4 +210,42 @@ func (r *DBRepository) Get(ctx context.Context, urlID string) (string, error) {
 		return "", err
 	}
 	return originalURL, nil
+}
+
+func (r *DBRepository) GetUsersID(ctx context.Context) ([]int, error) {
+	sqlSelect := "SELECT DISTINCT user_id FROM urls WHERE user_id IS NOT NULL;"
+	rows, err := r.dbConnection.QueryContext(ctx, sqlSelect)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var usersID []int
+	for rows.Next() {
+		var userID int
+		err := rows.Scan(&userID)
+		if err != nil {
+			return nil, err
+		}
+		usersID = append(usersID, userID)
+	}
+	return usersID, nil
+}
+
+func (r *DBRepository) GetUserUrls(ctx context.Context, userID int) (models.ApiUserUrlsRes, error) {
+	sqlSelect := "SELECT short_url, original_url FROM urls where user_id = $1;"
+	rows, err := r.dbConnection.QueryContext(ctx, sqlSelect, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var userURLs models.ApiUserUrlsRes
+	for rows.Next() {
+		var userURL models.UserUrlRes
+		err := rows.Scan(&userURL.ShortURL, &userURL.OriginalURL)
+		if err != nil {
+			return nil, err
+		}
+		userURLs = append(userURLs, userURL)
+	}
+	return userURLs, nil
 }

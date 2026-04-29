@@ -7,6 +7,7 @@ import (
 	"errors"
 	"os"
 
+	models "github.com/dimalewshin98-glitch/ShortyURL/internal/model"
 	"github.com/google/uuid"
 )
 
@@ -80,6 +81,25 @@ func (c *Consumer) ReadElement(URLId string) (*URLelement, error) {
 	return nil, errors.New("URL not found in file repository")
 }
 
+func (c *Consumer) ReadElements() ([]URLelement, error) {
+	var result []URLelement
+	c.file.Seek(0, 0)
+	scanner := bufio.NewScanner(c.file)
+	for scanner.Scan() {
+		var element URLelement
+		line := scanner.Bytes()
+		err := json.Unmarshal(line, &element)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, element)
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 func (c *Consumer) Close() error {
 	return c.file.Close()
 }
@@ -88,7 +108,7 @@ type URLelement struct {
 	UUID        string `json:"uuid"`
 	ShortUrl    string `json:"short_url"`
 	OriginalUrl string `json:"original_url"`
-	UserID      string `json:"user_id"`
+	UserID      int    `json:"user_id"`
 }
 
 type InfileRepository struct {
@@ -117,7 +137,7 @@ func (r *InfileRepository) Ping(ctx context.Context) error {
 	return nil
 }
 
-func (r *InfileRepository) Store(ctx context.Context, userID string, urlID string, URL string) (string, error) {
+func (r *InfileRepository) Store(ctx context.Context, userID int, urlID string, URL string) (string, error) {
 	element := URLelement{
 		UUID:        uuid.New().String(),
 		ShortUrl:    urlID,
@@ -135,4 +155,37 @@ func (r *InfileRepository) Get(ctx context.Context, urlID string) (string, error
 	}
 	URL := element.OriginalUrl
 	return URL, nil
+}
+
+func (r *InfileRepository) GetUsersID(ctx context.Context) ([]int, error) {
+	elements, err := r.consumer.ReadElements()
+	if err != nil {
+		return nil, err
+	}
+	uniqueIDs := make(map[int]bool)
+	var result []int
+	for _, urlInfo := range elements {
+		if !uniqueIDs[urlInfo.UserID] {
+			uniqueIDs[urlInfo.UserID] = true
+			result = append(result, urlInfo.UserID)
+		}
+	}
+	return result, nil
+}
+
+func (r *InfileRepository) GetUserUrls(ctx context.Context, userID int) (models.ApiUserUrlsRes, error) {
+	elements, err := r.consumer.ReadElements()
+	if err != nil {
+		return nil, err
+	}
+	var userURLs models.ApiUserUrlsRes
+	for _, urlInfo := range elements {
+		var userURL models.UserUrlRes
+		if urlInfo.UserID == userID {
+			userURL.OriginalURL = urlInfo.OriginalUrl
+			userURL.ShortURL = urlInfo.ShortUrl
+			userURLs = append(userURLs, userURL)
+		}
+	}
+	return userURLs, nil
 }

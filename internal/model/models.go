@@ -21,3 +21,10 @@ type BatchItemRes struct {
 	CorrelationID string `json:"correlation_id"`
 	ShortURL      string `json:"short_url"`
 }
+
+type ApiUserUrlsRes []UserUrlRes
+
+type UserUrlRes struct {
+	ShortURL    string `json:"short_url"`
+	OriginalURL string `json:"original_url"`
+}

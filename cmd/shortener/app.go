@@ -31,5 +31,6 @@ func (a *App) GetHandler() http.Handler {
 	r.Get("/{id}", requestsHandler.GetURL)
 	r.Post("/api/shorten", requestsHandler.ApiShorten)
 	r.Post("/api/shorten/batch", requestsHandler.ApiShortenBatch)
+	r.Get("/api/user/urls", requestsHandler.ApiUserUrls)
 	return r
 }

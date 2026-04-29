@@ -32,7 +32,7 @@ func main() {
 	app := NewApp(repo, *cfg)
 	appHandler := app.GetHandler()
 	logger.Log.Info("Running server", zap.String("address", cfg.ServerHostPort))
-	err = http.ListenAndServe(cfg.ServerHostPort, logger.RequestLogger(handler.AuthMiddleware(handler.GzipMiddleware(appHandler))))
+	err = http.ListenAndServe(cfg.ServerHostPort, logger.RequestLogger(handler.AuthMiddleware(handler.GzipMiddleware(appHandler), repo)))
 	if err != nil {
 		logger.Log.Fatal("Server failed", zap.Error(err))
 		panic(err)

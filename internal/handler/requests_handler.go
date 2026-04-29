@@ -58,7 +58,7 @@ func (s *RequestsHandler) GetURL(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *RequestsHandler) Shorten(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value("userID").(string)
+	userID := r.Context().Value("userID").(int)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if r.Method != http.MethodPost {
@@ -96,7 +96,7 @@ func (s *RequestsHandler) Shorten(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *RequestsHandler) ApiShorten(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value("userID").(string)
+	userID := r.Context().Value("userID").(int)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if r.Method != http.MethodPost {
@@ -144,7 +144,7 @@ func (s *RequestsHandler) ApiShorten(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *RequestsHandler) ApiShortenBatch(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value("userID").(string)
+	userID := r.Context().Value("userID").(int)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if r.Method != http.MethodPost {
@@ -178,6 +178,33 @@ func (s *RequestsHandler) ApiShortenBatch(w http.ResponseWriter, r *http.Request
 	err = enc.Encode(res)
 	if err != nil {
 		http.Error(w, "Json response encode error", http.StatusBadRequest)
+		return
+	}
+}
+
+func (s *RequestsHandler) ApiUserUrls(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value("userID").(int)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusBadRequest)
+		return
+	}
+	res, err := s.service.UserUrls(ctx, userID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if res == nil {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	enc := json.NewEncoder(w)
+	err = enc.Encode(res)
+	if err != nil {
+		http.Error(w, "Json response encode error", http.StatusOK)
 		return
 	}
 }
