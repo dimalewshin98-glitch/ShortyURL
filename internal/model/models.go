@@ -28,3 +28,12 @@ type UserUrlRes struct {
 	ShortURL    string `json:"short_url"`
 	OriginalURL string `json:"original_url"`
 }
+
+type ApiDeleteReq []string
+
+type ApiDeleteRes []string
+
+type RepoDeleteMessage struct {
+	ShortURL string
+	UserID   int
+}

@@ -15,8 +15,6 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-var ErrShortURLExists = errors.New("short URL already exists")
-
 type DBRepository struct {
 	dbDsn        string
 	dbConnection *sql.DB
@@ -106,6 +104,17 @@ func (r *DBRepository) CreateTables(ctx context.Context) error {
 			}
 			return err
 		}
+		sqlReqBytes, err = os.ReadFile("../../migrations/000004_add_deleted_flag_column.up.sql")
+		if err != nil {
+			return err
+		}
+		_, err = tx.ExecContext(ctx, string(sqlReqBytes))
+		if err != nil {
+			if rbErr := tx.Rollback(); rbErr != nil {
+				return rbErr
+			}
+			return err
+		}
 	}
 	return tx.Commit()
 }
@@ -156,10 +165,10 @@ func (r *DBRepository) Store(ctx context.Context, userID int, urlID string, URL 
 		}
 		return urlID, rbErr
 	default:
-		sqlInsert := "INSERT INTO urls (uuid, short_url, original_url, user_id) VALUES ($1, $2, $3, $4) ON CONFLICT (original_url) DO NOTHING RETURNING uuid"
+		sqlInsert := "INSERT INTO urls (uuid, short_url, original_url, user_id, is_deleted) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (original_url) DO NOTHING RETURNING uuid"
 		var UUID string
 		isExistsURL := false
-		row := tx.QueryRowContext(ctx, sqlInsert, uuid.New().String(), urlID, URL, userID)
+		row := tx.QueryRowContext(ctx, sqlInsert, uuid.New().String(), urlID, URL, userID, false)
 		err = row.Scan(&UUID)
 		if err != nil {
 			if err == sql.ErrNoRows {
@@ -198,16 +207,88 @@ func (r *DBRepository) Store(ctx context.Context, userID int, urlID string, URL 
 	}
 }
 
+func (r *DBRepository) SetDelete(ctx context.Context, userID int, urlID string) (string, error) {
+	var ctxUUID string
+	var singleReq bool
+	var isLastReq bool
+	var err error
+	var tx *sql.Tx
+	if ctx.Value("UUID") == nil {
+		ctxUUID = ""
+		singleReq = true
+		isLastReq = true
+	} else {
+		ctxUUID = ctx.Value("UUID").(string)
+		singleReq = false
+		if ctx.Value("isLastReq") == nil {
+			isLastReq = false
+		} else {
+			isLastReq = ctx.Value("isLastReq").(bool)
+		}
+	}
+	if singleReq {
+		tx = nil
+	} else {
+		tx = r.txMap[ctxUUID]
+	}
+	if tx == nil {
+		tx, err = r.dbConnection.BeginTx(ctx, nil)
+		if err != nil {
+			return urlID, err
+		}
+	}
+	if !singleReq {
+		r.txMap[ctxUUID] = tx
+	}
+	select {
+	case <-ctx.Done():
+		rbErr := tx.Rollback()
+		if !singleReq {
+			delete(r.txMap, ctxUUID)
+		}
+		return urlID, rbErr
+	default:
+		sqlInsert := "UPDATE urls SET is_deleted = true WHERE short_url = $1 and user_id = $2 RETURNING uuid"
+		var UUID string
+		row := tx.QueryRowContext(ctx, sqlInsert, urlID, userID)
+		err = row.Scan(&UUID)
+		if err != nil {
+			if err != sql.ErrNoRows {
+				if rbErr := tx.Rollback(); rbErr != nil {
+					return urlID, rbErr
+				}
+				return urlID, err
+			}
+		}
+		if isLastReq {
+			commitErr := tx.Commit()
+			if !singleReq {
+				delete(r.txMap, ctxUUID)
+			}
+			if commitErr == nil {
+				return urlID, err
+			} else {
+				return urlID, commitErr
+			}
+		}
+		return urlID, err
+	}
+}
+
 func (r *DBRepository) Get(ctx context.Context, urlID string) (string, error) {
-	sqlSelect := "SELECT original_url FROM urls WHERE short_url = $1"
+	sqlSelect := "SELECT original_url, is_deleted FROM urls WHERE short_url = $1"
 	var originalURL string
+	var isDeleted bool
 	row := r.dbConnection.QueryRowContext(ctx, sqlSelect, urlID)
-	err := row.Scan(&originalURL)
+	err := row.Scan(&originalURL, &isDeleted)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return "", nil
 		}
 		return "", err
+	}
+	if isDeleted {
+		return originalURL, ErrShortURLDeleted
 	}
 	return originalURL, nil
 }

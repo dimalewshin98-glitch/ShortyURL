@@ -109,6 +109,7 @@ type URLelement struct {
 	ShortUrl    string `json:"short_url"`
 	OriginalUrl string `json:"original_url"`
 	UserID      int    `json:"user_id"`
+	DeletedFlag bool   `json:"deleted_flag"`
 }
 
 type InfileRepository struct {
@@ -143,8 +144,20 @@ func (r *InfileRepository) Store(ctx context.Context, userID int, urlID string, 
 		ShortUrl:    urlID,
 		OriginalUrl: URL,
 		UserID:      userID,
+		DeletedFlag: false,
 	}
 	r.producer.WriteElement(&element)
+	return urlID, nil
+}
+
+func (r *InfileRepository) SetDelete(ctx context.Context, userID int, urlID string) (string, error) {
+	element, err := r.consumer.ReadElement(urlID)
+	if err != nil {
+		return "", err
+	}
+	if element.UserID == userID {
+		element.DeletedFlag = true
+	}
 	return urlID, nil
 }
 
@@ -154,6 +167,10 @@ func (r *InfileRepository) Get(ctx context.Context, urlID string) (string, error
 		return "", err
 	}
 	URL := element.OriginalUrl
+	isDeleted := element.DeletedFlag
+	if isDeleted {
+		return URL, ErrShortURLDeleted
+	}
 	return URL, nil
 }
 

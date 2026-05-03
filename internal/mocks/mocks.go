@@ -36,18 +36,18 @@ func (m *MockRepositoryInterface) EXPECT() *MockRepositoryInterfaceMockRecorder 
 }
 
 // Get mocks base method.
-func (m *MockRepositoryInterface) Get(ctx context.Context, urlId string) (string, error) {
+func (m *MockRepositoryInterface) Get(ctx context.Context, urlID string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Get", ctx, urlId)
+	ret := m.ctrl.Call(m, "Get", ctx, urlID)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Get indicates an expected call of Get.
-func (mr *MockRepositoryInterfaceMockRecorder) Get(ctx, urlId interface{}) *gomock.Call {
+func (mr *MockRepositoryInterfaceMockRecorder) Get(ctx, urlID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockRepositoryInterface)(nil).Get), ctx, urlId)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockRepositoryInterface)(nil).Get), ctx, urlID)
 }
 
 // GetUserUrls mocks base method.
@@ -94,17 +94,34 @@ func (mr *MockRepositoryInterfaceMockRecorder) Ping(ctx interface{}) *gomock.Cal
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Ping", reflect.TypeOf((*MockRepositoryInterface)(nil).Ping), ctx)
 }
 
-// Store mocks base method.
-func (m *MockRepositoryInterface) Store(ctx context.Context, userID int, urlId, url string) (string, error) {
+// SetDelete mocks base method.
+func (m *MockRepositoryInterface) SetDelete(ctx context.Context, userID int, urlID string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Store", ctx, userID, urlId, url)
+	ret := m.ctrl.Call(m, "SetDelete", ctx, userID, urlID)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SetDelete indicates an expected call of SetDelete.
+func (mr *MockRepositoryInterfaceMockRecorder) SetDelete(ctx, userID, urlID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetDelete",
+
+		reflect.TypeOf((*MockRepositoryInterface)(nil).SetDelete), ctx, userID, urlID)
+}
+
+// Store mocks base method.
+func (m *MockRepositoryInterface) Store(ctx context.Context, userID int, urlID, url string) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Store", ctx, userID, urlID, url)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Store indicates an expected call of Store.
-func (mr *MockRepositoryInterfaceMockRecorder) Store(ctx, userID, urlId, url interface{}) *gomock.Call {
+func (mr *MockRepositoryInterfaceMockRecorder) Store(ctx, userID, urlID, url interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Store", reflect.TypeOf((*MockRepositoryInterface)(nil).Store), ctx, userID, urlId, url)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Store", reflect.TypeOf((*MockRepositoryInterface)(nil).Store), ctx, userID, urlID, url)
 }

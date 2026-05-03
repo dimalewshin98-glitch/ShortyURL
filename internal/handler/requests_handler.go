@@ -3,11 +3,13 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"time"
 
 	models "github.com/dimalewshin98-glitch/ShortyURL/internal/model"
+	"github.com/dimalewshin98-glitch/ShortyURL/internal/repository"
 	"github.com/dimalewshin98-glitch/ShortyURL/internal/service"
 )
 
@@ -50,8 +52,13 @@ func (s *RequestsHandler) GetURL(w http.ResponseWriter, r *http.Request) {
 	urlID := r.PathValue("id")
 	URL, err := s.service.GetURL(ctx, urlID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+		if errors.Is(err, repository.ErrShortURLDeleted) {
+			w.WriteHeader(http.StatusGone)
+			return
+		} else {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
 	}
 	w.Header().Set("Location", URL)
 	w.WriteHeader(http.StatusTemporaryRedirect)
@@ -123,7 +130,7 @@ func (s *RequestsHandler) ApiShorten(w http.ResponseWriter, r *http.Request) {
 	shortURL, err := s.service.Shorten(ctx, userID, URL)
 	resHeader := http.StatusCreated
 	if err != nil {
-		if err.Error() == "Short URL already exists" {
+		if errors.Is(err, repository.ErrShortURLExists) {
 			resHeader = http.StatusConflict
 		} else {
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -207,4 +214,35 @@ func (s *RequestsHandler) ApiUserUrls(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Json response encode error", http.StatusOK)
 		return
 	}
+}
+
+func (s *RequestsHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value("userID").(int)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if r.Method != http.MethodDelete {
+		http.Error(w, "Method not allowed", http.StatusBadRequest)
+		return
+	}
+	if r.Header.Get("Content-Type") != "application/json" {
+		http.Error(w, "Content-Type not allowed", http.StatusBadRequest)
+		return
+	}
+	var req models.ApiDeleteReq
+	dec := json.NewDecoder(r.Body)
+	defer r.Body.Close()
+	err := dec.Decode(&req)
+	if err != nil {
+		http.Error(w, "Json request decode error", http.StatusBadRequest)
+		return
+	}
+	_, err = s.service.Delete(ctx, req, userID)
+	resHeader := http.StatusAccepted
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(resHeader)
 }

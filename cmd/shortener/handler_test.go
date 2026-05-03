@@ -457,7 +457,7 @@ func TestGetUserURLsHandler(t *testing.T) {
 			name: "test 1 | Success",
 			want: want{
 				statusCode: 200,
-				response: `[{"short_url":"a","original_url":"b"},{"short_url":"c","original_url":"d"}]` + "\n",
+				response:   `[{"short_url":"a","original_url":"b"},{"short_url":"c","original_url":"d"}]` + "\n",
 			},
 			request:     "/api/user/urls",
 			requestType: "GET",
@@ -484,14 +484,14 @@ func TestGetUserURLsHandler(t *testing.T) {
 				AnyTimes()
 			if tt.requestType == "GET" && tt.want.statusCode != 400 {
 				var res models.ApiUserUrlsRes
-				if tt.want.statusCode == 200{
+				if tt.want.statusCode == 200 {
 					res = append(res, models.UserUrlRes{ShortURL: "a", OriginalURL: "b"})
 					res = append(res, models.UserUrlRes{ShortURL: "c", OriginalURL: "d"})
 				}
 				mockedRepository.EXPECT().
-				GetUserUrls(gomock.Any(), gomock.Any()).
-				Return(res, nil).
-				Times(1)
+					GetUserUrls(gomock.Any(), gomock.Any()).
+					Return(res, nil).
+					Times(1)
 			}
 			mockedConfig := &config.Config{
 				ServerHostPort:     "localhost:8080",
@@ -502,6 +502,67 @@ func TestGetUserURLsHandler(t *testing.T) {
 			appHandler := http.HandlerFunc(requestsHandler.ApiUserUrls)
 			handlerWithMiddleware := handler.AuthMiddleware(appHandler, mockedRepository)
 			request := httptest.NewRequest(tt.requestType, tt.request, strings.NewReader(""))
+			w := httptest.NewRecorder()
+			handlerWithMiddleware.ServeHTTP(w, request)
+			resBytes, _ := io.ReadAll(w.Body)
+			assert.Equal(t, tt.want.statusCode, w.Result().StatusCode)
+			assert.Equal(t, tt.want.response, string(resBytes))
+		})
+	}
+}
+
+func TestDeleteURLsHandler(t *testing.T) {
+	type want struct {
+		contentType     string
+		statusCode      int
+		response        string
+		contentEncoding string
+	}
+	tests := []struct {
+		name            string
+		contentType     string
+		acceptEncoding  string
+		contentEncoding string
+		body            string
+		request         string
+		requestType     string
+		want            want
+	}{
+		{
+			name:        "test 1 | Success",
+			contentType: "application/json",
+			body:        `["aaa"]`,
+			want: want{
+				contentType: "application/json",
+				statusCode:  202,
+				response:    ``,
+			},
+			request:     "/api/user/urls",
+			requestType: "DELETE",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			mockedRepository := mocks.NewMockRepositoryInterface(ctrl)
+			mockedRepository.EXPECT().
+				GetUsersID(gomock.Any()).
+				Return([]int{1, 2, 3}, nil).
+				AnyTimes()
+			mockedRepository.EXPECT().
+				SetDelete(gomock.Any(), 3, "aaa").
+				Return("a", nil).
+				AnyTimes()
+			mockedConfig := &config.Config{
+				ServerHostPort:     "localhost:8080",
+				ShortenURLHostPort: "http://localhost:8080",
+			}
+			shorterService := service.NewShorterService(mockedRepository, mockedConfig)
+			requestsHandler := handler.NewRequestsHandler(shorterService)
+			appHandler := http.HandlerFunc(requestsHandler.Delete)
+			handlerWithMiddleware := handler.AuthMiddleware(appHandler, mockedRepository)
+			request := httptest.NewRequest(tt.requestType, tt.request, strings.NewReader(tt.body))
+			request.Header.Set("content-Type", tt.contentType)
 			w := httptest.NewRecorder()
 			handlerWithMiddleware.ServeHTTP(w, request)
 			resBytes, _ := io.ReadAll(w.Body)

@@ -8,8 +8,9 @@ import (
 )
 
 type UrlInfo struct {
-	URL    string
-	UserID int
+	URL       string
+	UserID    int
+	IsDeleted bool
 }
 
 type InmemoryRepository struct {
@@ -30,14 +31,29 @@ func (r *InmemoryRepository) Ping(ctx context.Context) error {
 func (r *InmemoryRepository) Store(ctx context.Context, userID int, urlID string, URL string) (string, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	r.urls[urlID] = UrlInfo{URL: URL, UserID: userID}
+	r.urls[urlID] = UrlInfo{URL: URL, UserID: userID, IsDeleted: false}
 	return urlID, nil
+}
+
+func (r *InmemoryRepository) SetDelete(ctx context.Context, userID int, urlID string) (string, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	URLInfo := r.urls[urlID]
+	if URLInfo.UserID == userID {
+		URLInfo.IsDeleted = true
+		r.urls[urlID] = URLInfo
+	}
+	return URLInfo.URL, nil
 }
 
 func (r *InmemoryRepository) Get(ctx context.Context, urlID string) (string, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	URLInfo := r.urls[urlID]
+	isDeleted := URLInfo.IsDeleted
+	if isDeleted {
+		return URLInfo.URL, ErrShortURLDeleted
+	}
 	return URLInfo.URL, nil
 }
 
