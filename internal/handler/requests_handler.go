@@ -175,7 +175,7 @@ func (s *RequestsHandler) ApiShortenBatch(w http.ResponseWriter, r *http.Request
 		return
 	}
 	res, err := s.service.ShortenBatch(ctx, userID, req)
-	if err != nil && err.Error() != "Short URL already exists" {
+	if err != nil && !errors.Is(err, repository.ErrShortURLExists) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}

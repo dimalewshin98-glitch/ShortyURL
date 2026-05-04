@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -9,6 +10,8 @@ import (
 	"github.com/dimalewshin98-glitch/ShortyURL/internal/repository"
 	"github.com/golang-jwt/jwt/v4"
 )
+
+var ErrNamedCookieNotPresent = errors.New("http: named cookie not present")
 
 type Claims struct {
 	jwt.RegisteredClaims
@@ -75,7 +78,7 @@ func AuthMiddleware(h http.Handler, repo repository.RepositoryInterface) http.Ha
 		var tokenString string
 		cookie, err := r.Cookie("token")
 		if err != nil {
-			if err.Error() == "http: named cookie not present" {
+			if errors.Is(err, ErrNamedCookieNotPresent) {
 				userID, err := CreateUserID(repo)
 				if err != nil {
 					http.Error(w, err.Error(), http.StatusBadRequest)

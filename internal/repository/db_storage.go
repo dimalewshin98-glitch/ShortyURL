@@ -3,9 +3,9 @@ package repository
 import (
 	"context"
 	"database/sql"
+	_ "embed"
 	"errors"
 	"fmt"
-	"os"
 	"slices"
 	"strings"
 	"time"
@@ -14,6 +14,18 @@ import (
 	"github.com/google/uuid"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
+
+//go:embed migrations/000001_create_urls_table.up.sql
+var sqlCreateUrlsTable string
+
+//go:embed migrations/000002_add_unique_index_to_orig_url.up.sql
+var sqlAddUniqueIndexToOrigUrl string
+
+//go:embed migrations/000003_add_user_id_column.up.sql
+var sqlAddUserIdColumn string
+
+//go:embed migrations/000004_add_deleted_flag_column.up.sql
+var sqlAddDeletedFlagColumn string
 
 type DBRepository struct {
 	dbDsn        string
@@ -71,44 +83,28 @@ func (r *DBRepository) CreateTables(ctx context.Context) error {
 		tables = append(tables, tableName)
 	}
 	if !slices.Contains(tables, "urls") {
-		sqlReqBytes, err := os.ReadFile("../../migrations/000001_create_urls_table.up.sql")
-		if err != nil {
-			return err
-		}
-		_, err = tx.ExecContext(ctx, string(sqlReqBytes))
+		_, err = tx.ExecContext(ctx, sqlCreateUrlsTable)
 		if err != nil {
 			if rbErr := tx.Rollback(); rbErr != nil {
 				return rbErr
 			}
 			return err
 		}
-		sqlReqBytes, err = os.ReadFile("../../migrations/000002_add_unique_index_to_orig_url.up.sql")
-		if err != nil {
-			return err
-		}
-		_, err = tx.ExecContext(ctx, string(sqlReqBytes))
+		_, err = tx.ExecContext(ctx, sqlAddUniqueIndexToOrigUrl)
 		if err != nil {
 			if rbErr := tx.Rollback(); rbErr != nil {
 				return rbErr
 			}
 			return err
 		}
-		sqlReqBytes, err = os.ReadFile("../../migrations/000003_add_user_id_column.up.sql")
-		if err != nil {
-			return err
-		}
-		_, err = tx.ExecContext(ctx, string(sqlReqBytes))
+		_, err = tx.ExecContext(ctx, sqlAddUserIdColumn)
 		if err != nil {
 			if rbErr := tx.Rollback(); rbErr != nil {
 				return rbErr
 			}
 			return err
 		}
-		sqlReqBytes, err = os.ReadFile("../../migrations/000004_add_deleted_flag_column.up.sql")
-		if err != nil {
-			return err
-		}
-		_, err = tx.ExecContext(ctx, string(sqlReqBytes))
+		_, err = tx.ExecContext(ctx, sqlAddDeletedFlagColumn)
 		if err != nil {
 			if rbErr := tx.Rollback(); rbErr != nil {
 				return rbErr
