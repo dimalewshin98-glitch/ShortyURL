@@ -71,8 +71,10 @@ func NewInfileAuditor(auditFile string) (*InfileAuditor, error) {
 }
 
 func (a *InfileAuditor) OnEvent(enevtType string, userID int, URL string) {
+	now := time.Now()
+	timestamp := now.Unix()
 	auditData := models.AuditData{
-		TS:     123,
+		TS:     timestamp,
 		Action: enevtType,
 		UserID: strconv.Itoa(userID),
 		URL:    URL,
@@ -89,8 +91,10 @@ func NewRemoteAuditor(auditURL string) *RemoteAuditor {
 }
 
 func (a *RemoteAuditor) OnEvent(enevtType string, userID int, URL string) {
+	now := time.Now()
+	timestamp := now.Unix()
 	auditData := models.AuditData{
-		TS:     123,
+		TS:     timestamp,
 		Action: enevtType,
 		UserID: strconv.Itoa(userID),
 		URL:    URL,
