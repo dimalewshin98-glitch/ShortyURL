@@ -11,8 +11,6 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 )
 
-var ErrNamedCookieNotPresent = errors.New("http: named cookie not present")
-
 type Claims struct {
 	jwt.RegisteredClaims
 	UserID int
@@ -78,7 +76,7 @@ func AuthMiddleware(h http.Handler, repo repository.RepositoryInterface) http.Ha
 		var tokenString string
 		cookie, err := r.Cookie("token")
 		if err != nil {
-			if errors.Is(err, ErrNamedCookieNotPresent) {
+			if errors.Is(err, http.ErrNoCookie) {
 				userID, err := CreateUserID(repo)
 				if err != nil {
 					http.Error(w, err.Error(), http.StatusBadRequest)
@@ -116,6 +114,7 @@ func AuthMiddleware(h http.Handler, repo repository.RepositoryInterface) http.Ha
 		http.SetCookie(w, &http.Cookie{
 			Name:  "token",
 			Value: tokenString,
+			Path:  "/api/",
 		})
 		ctx := context.WithValue(r.Context(), "userID", userID)
 		h.ServeHTTP(w, r.WithContext(ctx))

@@ -39,6 +39,7 @@ func (s *RequestsHandler) Ping(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *RequestsHandler) GetURL(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value("userID").(int)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if r.Method != http.MethodGet {
@@ -50,7 +51,7 @@ func (s *RequestsHandler) GetURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	urlID := r.PathValue("id")
-	URL, err := s.service.GetURL(ctx, urlID)
+	URL, err := s.service.GetURL(ctx, userID, urlID)
 	if err != nil {
 		if errors.Is(err, repository.ErrShortURLDeleted) {
 			w.WriteHeader(http.StatusGone)

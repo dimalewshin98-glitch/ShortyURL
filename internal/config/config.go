@@ -12,6 +12,8 @@ type Config struct {
 	FileStoragePath    string
 	RepositoryType     string
 	DatabaseDsn        string
+	AuditFile          string
+	AuditURL           string
 }
 
 func NewConfig() *Config {
@@ -20,6 +22,8 @@ func NewConfig() *Config {
 	logLevel := flag.String("l", "info", "log level")
 	fileStoragePath := flag.String("f", "", "file storage path")
 	databaseDsn := flag.String("d", "", "databse destination (host/host:port)")
+	auditFile := flag.String("audit-file", "", "audit file")
+	auditURL := flag.String("audit-url", "", "audit url")
 	flag.Parse()
 	if envServerHostPort := os.Getenv("SERVER_ADDRESS"); envServerHostPort != "" {
 		*serverHostPort = envServerHostPort
@@ -36,12 +40,20 @@ func NewConfig() *Config {
 	if envDatabaseDsn := os.Getenv("DATABASE_DSN"); envDatabaseDsn != "" {
 		*databaseDsn = envDatabaseDsn
 	}
+	if envAuditFile := os.Getenv("AUDIT_FILE"); envAuditFile != "" {
+		*auditFile = envAuditFile
+	}
+	if envAuditURL := os.Getenv("AUDIT_URL"); envAuditURL != "" {
+		*auditURL = envAuditURL
+	}
 	conf := &Config{
 		ServerHostPort:     *serverHostPort,
 		ShortenURLHostPort: *shortenURLHostPort,
 		LogLevel:           *logLevel,
 		FileStoragePath:    *fileStoragePath,
 		DatabaseDsn:        *databaseDsn,
+		AuditFile:          *auditFile,
+		AuditURL:           *auditURL,
 	}
 	conf.RepositoryType = conf.setRepositoryType(*fileStoragePath, *databaseDsn)
 	return conf

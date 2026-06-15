@@ -22,8 +22,11 @@ func NewApp(repo repository.RepositoryInterface, cfg config.Config) *App {
 	}
 }
 
-func (a *App) GetHandler() http.Handler {
+func (a *App) GetHandler(auditors []service.Auditor) http.Handler {
 	shorterService := service.NewShorterService(a.repo, &a.cfg)
+	for _, a := range auditors {
+		shorterService.AttachAuditor(a)
+	}
 	requestsHandler := handler.NewRequestsHandler(shorterService)
 	r := chi.NewRouter()
 	r.Get("/ping", requestsHandler.Ping)

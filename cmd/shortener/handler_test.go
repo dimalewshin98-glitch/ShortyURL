@@ -671,7 +671,8 @@ func TestApiStorenHandler(t *testing.T) {
 		ShortenURLHostPort: "http://localhost:8080",
 	}
 	app := NewApp(mockedRepository, *mockedConfig)
-	appHandler := app.GetHandler()
+	auditors := make([]service.Auditor, 0)
+	appHandler := app.GetHandler(auditors)
 	srv := httptest.NewServer((handler.GzipMiddleware(handler.AuthMiddleware(appHandler, repository))))
 	defer srv.Close()
 	for _, tt := range tests {
