@@ -58,13 +58,13 @@ func (r *InmemoryRepository) Get(ctx context.Context, urlID string) (string, err
 }
 
 func (r *InmemoryRepository) GetUsersID(ctx context.Context) ([]int, error) {
-	uniqueIDs := make(map[int]bool)
-	var result []int
+	uniqueIDs := make(map[int]struct{})
 	for _, urlInfo := range r.urls {
-		if !uniqueIDs[urlInfo.UserID] {
-			uniqueIDs[urlInfo.UserID] = true
-			result = append(result, urlInfo.UserID)
-		}
+		uniqueIDs[urlInfo.UserID] = struct{}{}
+	}
+	result := make([]int, 0, len(uniqueIDs))
+	for userID := range uniqueIDs {
+		result = append(result, userID)
 	}
 	return result, nil
 }

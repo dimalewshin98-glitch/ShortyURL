@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	_ "net/http/pprof"
 
 	"github.com/dimalewshin98-glitch/ShortyURL/internal/config"
 	"github.com/dimalewshin98-glitch/ShortyURL/internal/handler"
