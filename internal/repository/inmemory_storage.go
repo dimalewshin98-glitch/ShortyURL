@@ -28,14 +28,14 @@ func (r *InmemoryRepository) Ping(ctx context.Context) error {
 	return nil
 }
 
-func (r *InmemoryRepository) Store(ctx context.Context, userID int, urlID string, URL string) (string, error) {
+func (r *InmemoryRepository) Store(ctx context.Context, ctxUUID string, isLastReq bool, userID int, urlID string, URL string) (string, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.urls[urlID] = UrlInfo{URL: URL, UserID: userID, IsDeleted: false}
 	return urlID, nil
 }
 
-func (r *InmemoryRepository) SetDelete(ctx context.Context, userID int, urlID string) (string, error) {
+func (r *InmemoryRepository) SetDelete(ctx context.Context, ctxUUID string, isLastReq bool, userID int, urlID string) (string, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	URLInfo := r.urls[urlID]

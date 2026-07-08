@@ -18,29 +18,6 @@ import (
 	"github.com/golang/mock/gomock"
 )
 
-// func (mir *MockedInmemoryRepository) Get(ctx context.Context, urlID string) (string, error) {
-// 	return "https://mockedurl.com", nil
-// }
-
-// func (mir *MockedInmemoryRepository) Store(ctx context.Context, userID int, urlID string, URL string) (string, error) {
-// 	return "AbCdEf", nil
-// }
-
-// func (mir *MockedInmemoryRepository) GetUserUrls(ctx context.Context, userID int) (models.ApiUserUrlsRes, error) {
-// 	var res models.ApiUserUrlsRes
-// 	res = append(res, models.UserUrlRes{ShortURL: "a", OriginalURL: "b"})
-// 	res = append(res, models.UserUrlRes{ShortURL: "c", OriginalURL: "d"})
-// 	return res, nil
-// }
-
-// func (mir *MockedInmemoryRepository) Ping(ctx context.Context) error {
-// 	return nil
-// }
-
-// func (mir *MockedInmemoryRepository) GetUsersID(ctx context.Context) ([]int, error) {
-// 	return []int{1, 2, 3}, nil
-// }
-
 func ExampleRequestsHandler_Ping() {
 	type want struct {
 		statusCode int
@@ -130,7 +107,7 @@ func ExampleRequestsHandler_ApiShortenBatch() {
 		AnyTimes()
 	if test.requestType == "POST" && test.want.statusCode != 400 {
 		mockedRepository.EXPECT().
-			Store(gomock.Any(), 4, gomock.Any(), "urlAA").
+			Store(gomock.Any(), gomock.Any(), gomock.Any(), 4, gomock.Any(), "urlAA").
 			Return("bjjBrD", nil).
 			Times(2)
 	}
@@ -191,7 +168,7 @@ func ExampleRequestsHandler_Shorten() {
 		AnyTimes()
 	if test.requestType == "POST" && test.want.statusCode != 400 {
 		mockedRepository.EXPECT().
-			Store(gomock.Any(), 4, gomock.Any(), "urlAA").
+			Store(gomock.Any(), gomock.Any(), gomock.Any(), 4, gomock.Any(), "urlAA").
 			Return("bjjBrD", nil).
 			Times(1)
 	}
@@ -305,7 +282,7 @@ func ExampleRequestsHandler_Delete() {
 		Return([]int{1, 2, 3}, nil).
 		AnyTimes()
 	mockedRepository.EXPECT().
-		SetDelete(gomock.Any(), 3, "aaa").
+		SetDelete(gomock.Any(), gomock.Any(), gomock.Any(), 3, "aaa").
 		Return("a", nil).
 		Times(1)
 

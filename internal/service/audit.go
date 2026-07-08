@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/dimalewshin98-glitch/ShortyURL/internal/logger"
@@ -57,6 +58,7 @@ type Auditor interface {
 type InfileAuditor struct {
 	auditFile string
 	producer  AuditorProducer
+	mu        sync.Mutex
 }
 
 func NewInfileAuditor(auditFile string) (*InfileAuditor, error) {
@@ -79,7 +81,9 @@ func (a *InfileAuditor) OnEvent(enevtType string, userID int, URL string) {
 		UserID: strconv.Itoa(userID),
 		URL:    URL,
 	}
+	a.mu.Lock()
 	a.producer.WriteData(auditData)
+	a.mu.Unlock()
 }
 
 type RemoteAuditor struct {

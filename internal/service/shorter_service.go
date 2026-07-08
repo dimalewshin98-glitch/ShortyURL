@@ -50,7 +50,7 @@ func (s *ShorterService) GetURL(ctx context.Context, userID int, urlID string) (
 }
 
 func (s *ShorterService) Shorten(ctx context.Context, userID int, URL string) (string, error) {
-	urlID, err := s.repo.Store(ctx, userID, s.generateShortURL(), URL)
+	urlID, err := s.repo.Store(ctx, "", true, userID, s.generateShortURL(), URL)
 	if err != nil && !errors.Is(err, repository.ErrShortURLExists) {
 		return "", err
 	}
@@ -60,14 +60,15 @@ func (s *ShorterService) Shorten(ctx context.Context, userID int, URL string) (s
 
 func (s *ShorterService) ShortenBatch(ctx context.Context, userID int, reqData models.ApiShortenBatchReq) (models.ApiShortenBatchRes, error) {
 	var err error = nil
+	isLastReq := false
 	ctxUUID := uuid.New().String()
-	ctxVal := context.WithValue(ctx, "UUID", ctxUUID)
 	resData := models.ApiShortenBatchRes{}
 	for i := range reqData {
 		if i == len(reqData)-1 {
-			ctxVal = context.WithValue(ctxVal, "isLastReq", true)
+			isLastReq = true
 		}
-		urlID, err := s.repo.Store(ctxVal, userID, s.generateShortURL(), reqData[i].OriginalURL)
+		generatedShortURL := s.generateShortURL()
+		urlID, err := s.repo.Store(ctx, ctxUUID, isLastReq, userID, generatedShortURL, reqData[i].OriginalURL)
 		if err != nil && !errors.Is(err, repository.ErrShortURLExists) {
 			return models.ApiShortenBatchRes{}, err
 		}
@@ -126,14 +127,14 @@ func (s *ShorterService) flushMessages() {
 		case msg := <-s.msgChan:
 			messages = append(messages, msg)
 		case <-ticker.C:
+			isLastReq := false
 			ctxUUID := uuid.New().String()
 			ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
-			ctxVal := context.WithValue(ctx, "UUID", ctxUUID)
 			for i := range messages {
 				if i == len(messages)-1 {
-					ctxVal = context.WithValue(ctxVal, "isLastReq", true)
+					isLastReq = true
 				}
-				_, err := s.repo.SetDelete(ctxVal, messages[i].UserID, messages[i].ShortURL)
+				_, err := s.repo.SetDelete(ctx, ctxUUID, isLastReq, messages[i].UserID, messages[i].ShortURL)
 				if err != nil {
 					continue
 				}

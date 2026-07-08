@@ -29,7 +29,7 @@ func (mir *MockedInmemoryRepository) Get(ctx context.Context, urlID string) (str
 	return "https://mockedurl.com", nil
 }
 
-func (mir *MockedInmemoryRepository) Store(ctx context.Context, userID int, urlID string, URL string) (string, error) {
+func (mir *MockedInmemoryRepository) Store(ctx context.Context, ctxUUID string, isLastReq bool, userID int, urlID string, URL string) (string, error) {
 	return "AbCdEf", nil
 }
 
@@ -237,7 +237,7 @@ func TestApiShortenBatchHandler(t *testing.T) {
 				AnyTimes()
 			if tt.requestType == "POST" && tt.want.statusCode != 400 {
 				mockedRepository.EXPECT().
-					Store(gomock.Any(), 4, gomock.Any(), "urlAA").
+					Store(gomock.Any(), gomock.Any(), gomock.Any(), 4, gomock.Any(), "urlAA").
 					Return("bjjBrD", nil).
 					Times(2)
 			}
@@ -335,7 +335,7 @@ func TestStorenHandler(t *testing.T) {
 				AnyTimes()
 			if tt.requestType == "POST" && tt.want.statusCode != 400 {
 				mockedRepository.EXPECT().
-					Store(gomock.Any(), 4, gomock.Any(), "urlAA").
+					Store(gomock.Any(), gomock.Any(), gomock.Any(), 4, gomock.Any(), "urlAA").
 					Return("bjjBrD", nil).
 					Times(1)
 			}
@@ -550,7 +550,7 @@ func TestDeleteURLsHandler(t *testing.T) {
 				Return([]int{1, 2, 3}, nil).
 				AnyTimes()
 			mockedRepository.EXPECT().
-				SetDelete(gomock.Any(), 3, "aaa").
+				SetDelete(gomock.Any(), gomock.Any(), gomock.Any(), 3, "aaa").
 				Return("a", nil).
 				AnyTimes()
 			mockedConfig := &config.Config{

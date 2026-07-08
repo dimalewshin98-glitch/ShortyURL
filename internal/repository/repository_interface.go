@@ -14,10 +14,13 @@ var ErrShortURLDeleted = errors.New("short URL already deleted")
 // Реализация этого интерфейса отвечает за все операции CRUD (создание, чтение, обновление, удаление)
 // с данными о коротких URL и их владельцах.
 type RepositoryInterface interface {
+
 	// Store сохраняет новую пару "короткий URL - оригинальный URL" для пользователя.
 	//
 	// Параметры:
 	//   ctx - контекст запроса.
+	//   ctxUUID - uuid контекста запроса.
+	//   isLastReq - флаг последнего запроса
 	//   userID - идентификатор пользователя, которому принадлежит URL.
 	//   urlID - сгенерированный идентификатор короткой ссылки.
 	//   url - оригинальный, полный URL-адрес.
@@ -25,7 +28,7 @@ type RepositoryInterface interface {
 	// Возвращает:
 	//   string - сохранённый короткий URL.
 	//   error - ошибка, если URL уже существует или при записи в хранилище возникла проблема.
-	Store(ctx context.Context, userID int, urlID string, url string) (string, error)
+	Store(ctx context.Context, ctxUUID string, isLastReq bool, userID int, urlID string, url string) (string, error)
 
 	// Get возвращает оригинальный URL по его короткому идентификатору (urlID).
 	//
@@ -66,7 +69,9 @@ type RepositoryInterface interface {
 	//
 	// Параметры:
 	//   ctx - контекст запроса.
+	//   ctxUUID - uuid контекста запроса.
+	//   isLastReq - флаг последнего запроса
 	//   userID - идентификатор пользователя-владельца ссылки.
 	//   urlID - идентификатор короткой ссылки для удаления.
-	SetDelete(ctx context.Context, userID int, urlID string) (string, error)
+	SetDelete(ctx context.Context, ctxUUID string, isLastReq bool, userID int, urlID string) (string, error)
 }
