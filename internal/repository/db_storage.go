@@ -120,24 +120,15 @@ func (r *DBRepository) Ping(ctx context.Context) error {
 	return err
 }
 
-func (r *DBRepository) Store(ctx context.Context, userID int, urlID string, URL string) (string, error) {
-	var ctxUUID string
+func (r *DBRepository) Store(ctx context.Context, ctxUUID string, isLastReq bool, userID int, urlID string, URL string) (string, error) {
 	var singleReq bool
-	var isLastReq bool
 	var err error
 	var tx *sql.Tx
-	if ctx.Value("UUID") == nil {
-		ctxUUID = ""
+	if ctxUUID == "" {
 		singleReq = true
 		isLastReq = true
 	} else {
-		ctxUUID = ctx.Value("UUID").(string)
 		singleReq = false
-		if ctx.Value("isLastReq") == nil {
-			isLastReq = false
-		} else {
-			isLastReq = ctx.Value("isLastReq").(bool)
-		}
 	}
 	if singleReq {
 		tx = nil
@@ -203,24 +194,15 @@ func (r *DBRepository) Store(ctx context.Context, userID int, urlID string, URL 
 	}
 }
 
-func (r *DBRepository) SetDelete(ctx context.Context, userID int, urlID string) (string, error) {
-	var ctxUUID string
+func (r *DBRepository) SetDelete(ctx context.Context, ctxUUID string, isLastReq bool, userID int, urlID string) (string, error) {
 	var singleReq bool
-	var isLastReq bool
 	var err error
 	var tx *sql.Tx
-	if ctx.Value("UUID") == nil {
-		ctxUUID = ""
+	if ctxUUID == "" {
 		singleReq = true
 		isLastReq = true
 	} else {
-		ctxUUID = ctx.Value("UUID").(string)
 		singleReq = false
-		if ctx.Value("isLastReq") == nil {
-			isLastReq = false
-		} else {
-			isLastReq = ctx.Value("isLastReq").(bool)
-		}
 	}
 	if singleReq {
 		tx = nil

@@ -138,7 +138,7 @@ func (r *InfileRepository) Ping(ctx context.Context) error {
 	return nil
 }
 
-func (r *InfileRepository) Store(ctx context.Context, userID int, urlID string, URL string) (string, error) {
+func (r *InfileRepository) Store(ctx context.Context, ctxUUID string, isLastReq bool, userID int, urlID string, URL string) (string, error) {
 	element := URLelement{
 		UUID:        uuid.New().String(),
 		ShortUrl:    urlID,
@@ -150,7 +150,7 @@ func (r *InfileRepository) Store(ctx context.Context, userID int, urlID string, 
 	return urlID, nil
 }
 
-func (r *InfileRepository) SetDelete(ctx context.Context, userID int, urlID string) (string, error) {
+func (r *InfileRepository) SetDelete(ctx context.Context, ctxUUID string, isLastReq bool, userID int, urlID string) (string, error) {
 	element, err := r.consumer.ReadElement(urlID)
 	if err != nil {
 		return "", err
