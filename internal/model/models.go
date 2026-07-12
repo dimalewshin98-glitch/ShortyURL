@@ -60,6 +60,7 @@ type RepoDeleteMessage struct {
 type ApiDeleteRes []string
 
 // AuditData содержит данные для аудита действий пользователя.
+// generate:reset
 type AuditData struct {
 	// TS — временная метка (timestamp) совершения действия.
 	TS int64 `json:"ts"`
