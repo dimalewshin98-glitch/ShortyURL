@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	_ "net/http/pprof"
 
@@ -12,7 +13,27 @@ import (
 	"go.uber.org/zap"
 )
 
+var (
+	buildVersion string
+	buildDate    string
+	buildCommit  string
+)
+
+func validateBuildInfo(value string) string {
+	if value == "" {
+		return "N/A"
+	}
+	return value
+}
+
+func printBuildInfo() {
+	fmt.Printf("Build version: %s\n", validateBuildInfo(buildVersion))
+	fmt.Printf("Build date: %s\n", validateBuildInfo(buildDate))
+	fmt.Printf("Build commit: %s\n", validateBuildInfo(buildCommit))
+}
+
 func main() {
+	printBuildInfo()
 	cfg := config.NewConfig()
 	var repo repository.RepositoryInterface
 	var err error
