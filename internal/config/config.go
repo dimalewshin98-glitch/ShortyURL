@@ -7,6 +7,7 @@ import (
 
 type Config struct {
 	ServerHostPort     string
+	EnableHTTPS        bool
 	ShortenURLHostPort string
 	LogLevel           string
 	FileStoragePath    string
@@ -18,6 +19,7 @@ type Config struct {
 
 func NewConfig() *Config {
 	serverHostPort := flag.String("a", "localhost:8888", "server host:port")
+	enableHTTPS := flag.Bool("s", false, "enable HTTPS")
 	shortenURLHostPort := flag.String("b", "http://localhost:8000", "shorten url http://host:port")
 	logLevel := flag.String("l", "info", "log level")
 	fileStoragePath := flag.String("f", "", "file storage path")
@@ -27,6 +29,9 @@ func NewConfig() *Config {
 	flag.Parse()
 	if envServerHostPort := os.Getenv("SERVER_ADDRESS"); envServerHostPort != "" {
 		*serverHostPort = envServerHostPort
+	}
+	if envEnableHTTPS := os.Getenv("ENABLE_HTTPS"); envEnableHTTPS != "" {
+		*enableHTTPS = envEnableHTTPS == "true"
 	}
 	if envShortenURLHostPort := os.Getenv("BASE_URL"); envShortenURLHostPort != "" {
 		*shortenURLHostPort = envShortenURLHostPort
@@ -48,6 +53,7 @@ func NewConfig() *Config {
 	}
 	conf := &Config{
 		ServerHostPort:     *serverHostPort,
+		EnableHTTPS:        *enableHTTPS,
 		ShortenURLHostPort: *shortenURLHostPort,
 		LogLevel:           *logLevel,
 		FileStoragePath:    *fileStoragePath,

@@ -67,8 +67,15 @@ func main() {
 	logger.Log.Info("Repository type set to", zap.String("type", cfg.RepositoryType))
 	app := NewApp(repo, *cfg)
 	appHandler := app.GetHandler(auditors)
-	logger.Log.Info("Running server", zap.String("address", cfg.ServerHostPort))
-	err = http.ListenAndServe(cfg.ServerHostPort, logger.RequestLogger(handler.AuthMiddleware(handler.GzipMiddleware(appHandler), repo)))
+	if cfg.EnableHTTPS {
+		certFile := "cert/cert.pem"
+		keyFile := "cert/private.pem"
+		logger.Log.Info("Running HTTPS server", zap.String("address", cfg.ServerHostPort))
+		err = http.ListenAndServeTLS(cfg.ServerHostPort, certFile, keyFile, logger.RequestLogger(handler.AuthMiddleware(handler.GzipMiddleware(appHandler), repo)))
+	} else {
+		logger.Log.Info("Running HTTP server", zap.String("address", cfg.ServerHostPort))
+		err = http.ListenAndServe(cfg.ServerHostPort, logger.RequestLogger(handler.AuthMiddleware(handler.GzipMiddleware(appHandler), repo)))
+	}
 	if err != nil {
 		logger.Log.Fatal("Server failed", zap.Error(err))
 		panic(err)
