@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/json"
 	"flag"
 	"os"
 )
@@ -17,7 +18,21 @@ type Config struct {
 	AuditURL           string
 }
 
-func NewConfig() *Config {
+type JSONConfig struct {
+	ServerAddress   string `json:"server_address"`
+	BaseURL         string `json:"base_url"`
+	FileStoragePath string `json:"file_storage_path"`
+	DatabaseDSN     string `json:"database_dsn"`
+	EnableHTTPS     bool   `json:"enable_https"`
+	LogLevel        string `json:"log_level"`
+	AuditFile       string `json:"audit_file"`
+	AuditURL        string `json:"audit_url"`
+}
+
+func NewConfig() (*Config, error) {
+	var configFile string
+	flag.StringVar(&configFile, "c", "", "config file path")
+	flag.StringVar(&configFile, "config", "", "config file path")
 	serverHostPort := flag.String("a", "localhost:8888", "server host:port")
 	enableHTTPS := flag.Bool("s", false, "enable HTTPS")
 	shortenURLHostPort := flag.String("b", "http://localhost:8000", "shorten url http://host:port")
@@ -27,6 +42,39 @@ func NewConfig() *Config {
 	auditFile := flag.String("audit-file", "", "audit file")
 	auditURL := flag.String("audit-url", "", "audit url")
 	flag.Parse()
+	if envConfigFile := os.Getenv("CONFIG"); envConfigFile != "" {
+		configFile = envConfigFile
+	}
+	var jsonConfig JSONConfig
+	if configFile != "" {
+		if err := loadJSONConfig(configFile, &jsonConfig); err != nil {
+			return nil, err
+		}
+	}
+	if jsonConfig.ServerAddress != "" {
+		*serverHostPort = jsonConfig.ServerAddress
+	}
+	if jsonConfig.BaseURL != "" {
+		*shortenURLHostPort = jsonConfig.BaseURL
+	}
+	if jsonConfig.FileStoragePath != "" {
+		*fileStoragePath = jsonConfig.FileStoragePath
+	}
+	if jsonConfig.DatabaseDSN != "" {
+		*databaseDsn = jsonConfig.DatabaseDSN
+	}
+	if jsonConfig.EnableHTTPS {
+		*enableHTTPS = jsonConfig.EnableHTTPS
+	}
+	if jsonConfig.LogLevel != "" {
+		*logLevel = jsonConfig.LogLevel
+	}
+	if jsonConfig.AuditFile != "" {
+		*auditFile = jsonConfig.AuditFile
+	}
+	if jsonConfig.AuditURL != "" {
+		*auditURL = jsonConfig.AuditURL
+	}
 	if envServerHostPort := os.Getenv("SERVER_ADDRESS"); envServerHostPort != "" {
 		*serverHostPort = envServerHostPort
 	}
@@ -62,7 +110,18 @@ func NewConfig() *Config {
 		AuditURL:           *auditURL,
 	}
 	conf.RepositoryType = conf.setRepositoryType(*fileStoragePath, *databaseDsn)
-	return conf
+	return conf, nil
+}
+
+func loadJSONConfig(filename string, config *JSONConfig) error {
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		return err
+	}
+	if err := json.Unmarshal(data, config); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (c *Config) setRepositoryType(fileStoragePath string, databaseDsn string) string {

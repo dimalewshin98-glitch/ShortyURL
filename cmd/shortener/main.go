@@ -34,9 +34,11 @@ func printBuildInfo() {
 
 func main() {
 	printBuildInfo()
-	cfg := config.NewConfig()
+	cfg, err := config.NewConfig()
+	if err != nil {
+		panic(err)
+	}
 	var repo repository.RepositoryInterface
-	var err error
 	auditors := make([]service.Auditor, 0)
 	if err := logger.Initialize(cfg.LogLevel); err != nil {
 		panic(err)
