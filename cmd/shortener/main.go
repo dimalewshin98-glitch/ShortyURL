@@ -1,9 +1,14 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	_ "net/http/pprof"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/dimalewshin98-glitch/ShortyURL/internal/config"
 	"github.com/dimalewshin98-glitch/ShortyURL/internal/handler"
@@ -66,20 +71,39 @@ func main() {
 		auditor := service.NewRemoteAuditor(cfg.AuditURL)
 		auditors = append(auditors, auditor)
 	}
-	logger.Log.Info("Repository type set to", zap.String("type", cfg.RepositoryType))
 	app := NewApp(repo, *cfg)
 	appHandler := app.GetHandler(auditors)
+	var srv = http.Server{Addr: cfg.ServerHostPort, Handler: logger.RequestLogger(handler.AuthMiddleware(handler.GzipMiddleware(appHandler), repo))}
+	idleConnsClosed := make(chan struct{})
+	sigint := make(chan os.Signal, 1)
+	signal.Notify(sigint, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
+	go func() {
+		<-sigint
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		if err := srv.Shutdown(ctx); err != nil {
+			logger.Log.Fatal("HTTP server Shutdown:", zap.Error(err))
+		}
+		if err := repo.Close(ctx); err != nil {
+			logger.Log.Fatal("Repo Shutdown:", zap.Error(err))
+		}
+		close(idleConnsClosed)
+	}()
 	if cfg.EnableHTTPS {
 		certFile := "cert/cert.pem"
 		keyFile := "cert/private.pem"
 		logger.Log.Info("Running HTTPS server", zap.String("address", cfg.ServerHostPort))
-		err = http.ListenAndServeTLS(cfg.ServerHostPort, certFile, keyFile, logger.RequestLogger(handler.AuthMiddleware(handler.GzipMiddleware(appHandler), repo)))
+		if err := srv.ListenAndServeTLS(certFile, keyFile); err != http.ErrServerClosed {
+			logger.Log.Fatal("Server failed", zap.Error(err))
+			panic(err)
+		}
 	} else {
 		logger.Log.Info("Running HTTP server", zap.String("address", cfg.ServerHostPort))
-		err = http.ListenAndServe(cfg.ServerHostPort, logger.RequestLogger(handler.AuthMiddleware(handler.GzipMiddleware(appHandler), repo)))
+		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
+			logger.Log.Fatal("Server failed", zap.Error(err))
+			panic(err)
+		}
 	}
-	if err != nil {
-		logger.Log.Fatal("Server failed", zap.Error(err))
-		panic(err)
-	}
+	<-idleConnsClosed
+	logger.Log.Info("Server Shutdown gracefully", zap.String("address", cfg.ServerHostPort))
 }

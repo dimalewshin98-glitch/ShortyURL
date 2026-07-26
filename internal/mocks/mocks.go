@@ -35,6 +35,20 @@ func (m *MockRepositoryInterface) EXPECT() *MockRepositoryInterfaceMockRecorder 
 	return m.recorder
 }
 
+// Close mocks base method.
+func (m *MockRepositoryInterface) Close(ctx context.Context) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Close", ctx)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Close indicates an expected call of Close.
+func (mr *MockRepositoryInterfaceMockRecorder) Close(ctx interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockRepositoryInterface)(nil).Close), ctx)
+}
+
 // Get mocks base method.
 func (m *MockRepositoryInterface) Get(ctx context.Context, urlID string) (string, error) {
 	m.ctrl.T.Helper()

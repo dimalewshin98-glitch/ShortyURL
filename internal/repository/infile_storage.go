@@ -138,6 +138,12 @@ func (r *InfileRepository) Ping(ctx context.Context) error {
 	return nil
 }
 
+func (r *InfileRepository) Close(ctx context.Context) error {
+	r.producer.Close()
+	r.consumer.Close()
+	return nil
+}
+
 func (r *InfileRepository) Store(ctx context.Context, ctxUUID string, isLastReq bool, userID int, urlID string, URL string) (string, error) {
 	element := URLelement{
 		UUID:        uuid.New().String(),
