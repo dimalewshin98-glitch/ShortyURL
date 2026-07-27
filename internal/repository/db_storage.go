@@ -120,6 +120,14 @@ func (r *DBRepository) Ping(ctx context.Context) error {
 	return err
 }
 
+func (r *DBRepository) Close(ctx context.Context) error {
+	_ = ctx
+	if r.dbConnection != nil {
+		return r.dbConnection.Close()
+	}
+	return nil
+}
+
 func (r *DBRepository) Store(ctx context.Context, ctxUUID string, isLastReq bool, userID int, urlID string, URL string) (string, error) {
 	var singleReq bool
 	var err error

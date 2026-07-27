@@ -58,6 +58,12 @@ type RepositoryInterface interface {
 	//   ctx - контекст запроса.
 	Ping(ctx context.Context) error
 
+	// Close закрытие соединения с хранилицем данных (например, соединение с БД).
+	//
+	// Параметры:
+	//   ctx - контекст запроса.
+	Close(ctx context.Context) error
+
 	// GetUsersID возвращает список всех идентификаторов пользователей, которые создавали короткие ссылки.
 	//
 	// Параметры:

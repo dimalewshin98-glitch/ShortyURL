@@ -28,6 +28,10 @@ func (r *InmemoryRepository) Ping(ctx context.Context) error {
 	return nil
 }
 
+func (r *InmemoryRepository) Close(ctx context.Context) error {
+	return nil
+}
+
 func (r *InmemoryRepository) Store(ctx context.Context, ctxUUID string, isLastReq bool, userID int, urlID string, URL string) (string, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
