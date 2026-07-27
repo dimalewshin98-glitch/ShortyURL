@@ -121,6 +121,7 @@ func (r *DBRepository) Ping(ctx context.Context) error {
 }
 
 func (r *DBRepository) Close(ctx context.Context) error {
+	_ = ctx
 	if r.dbConnection != nil {
 		return r.dbConnection.Close()
 	}

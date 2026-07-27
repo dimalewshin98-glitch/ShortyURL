@@ -42,6 +42,10 @@ func NewConfig() (*Config, error) {
 	auditFile := flag.String("audit-file", "", "audit file")
 	auditURL := flag.String("audit-url", "", "audit url")
 	flag.Parse()
+	visitedFlags := make(map[string]bool)
+	flag.VisitAll(func(f *flag.Flag) {
+		visitedFlags[f.Name] = true
+	})
 	if envConfigFile := os.Getenv("CONFIG"); envConfigFile != "" {
 		configFile = envConfigFile
 	}
@@ -51,28 +55,28 @@ func NewConfig() (*Config, error) {
 			return nil, err
 		}
 	}
-	if jsonConfig.ServerAddress != "" {
+	if !visitedFlags["a"] && jsonConfig.ServerAddress != "" {
 		*serverHostPort = jsonConfig.ServerAddress
 	}
-	if jsonConfig.BaseURL != "" {
+	if !visitedFlags["b"] && jsonConfig.BaseURL != "" {
 		*shortenURLHostPort = jsonConfig.BaseURL
 	}
-	if jsonConfig.FileStoragePath != "" {
+	if !visitedFlags["f"] && jsonConfig.FileStoragePath != "" {
 		*fileStoragePath = jsonConfig.FileStoragePath
 	}
-	if jsonConfig.DatabaseDSN != "" {
+	if !visitedFlags["f"] && jsonConfig.DatabaseDSN != "" {
 		*databaseDsn = jsonConfig.DatabaseDSN
 	}
-	if jsonConfig.EnableHTTPS {
+	if !visitedFlags["s"] && jsonConfig.EnableHTTPS {
 		*enableHTTPS = jsonConfig.EnableHTTPS
 	}
-	if jsonConfig.LogLevel != "" {
+	if !visitedFlags["l"] && jsonConfig.LogLevel != "" {
 		*logLevel = jsonConfig.LogLevel
 	}
-	if jsonConfig.AuditFile != "" {
+	if !visitedFlags["audit-file"] && jsonConfig.AuditFile != "" {
 		*auditFile = jsonConfig.AuditFile
 	}
-	if jsonConfig.AuditURL != "" {
+	if !visitedFlags["audit-url"] && jsonConfig.AuditURL != "" {
 		*auditURL = jsonConfig.AuditURL
 	}
 	if envServerHostPort := os.Getenv("SERVER_ADDRESS"); envServerHostPort != "" {

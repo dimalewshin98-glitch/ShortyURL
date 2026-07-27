@@ -82,10 +82,10 @@ func main() {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 		if err := srv.Shutdown(ctx); err != nil {
-			logger.Log.Fatal("HTTP server Shutdown:", zap.Error(err))
+			logger.Log.Error("HTTP server Shutdown:", zap.Error(err))
 		}
 		if err := repo.Close(ctx); err != nil {
-			logger.Log.Fatal("Repo Shutdown:", zap.Error(err))
+			logger.Log.Error("Repo Shutdown:", zap.Error(err))
 		}
 		close(idleConnsClosed)
 	}()
@@ -94,13 +94,13 @@ func main() {
 		keyFile := "cert/private.pem"
 		logger.Log.Info("Running HTTPS server", zap.String("address", cfg.ServerHostPort))
 		if err := srv.ListenAndServeTLS(certFile, keyFile); err != http.ErrServerClosed {
-			logger.Log.Fatal("Server failed", zap.Error(err))
+			logger.Log.Error("Server failed", zap.Error(err))
 			panic(err)
 		}
 	} else {
 		logger.Log.Info("Running HTTP server", zap.String("address", cfg.ServerHostPort))
 		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
-			logger.Log.Fatal("Server failed", zap.Error(err))
+			logger.Log.Error("Server failed", zap.Error(err))
 			panic(err)
 		}
 	}
