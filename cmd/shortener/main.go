@@ -73,7 +73,7 @@ func main() {
 	}
 	app := NewApp(repo, *cfg)
 	appHandler := app.GetHandler(auditors)
-	var srv = http.Server{Addr: cfg.ServerHostPort, Handler: logger.RequestLogger(handler.AuthMiddleware(handler.GzipMiddleware(appHandler), repo))}
+	var srv = http.Server{Addr: cfg.ServerHostPort, Handler: logger.RequestLogger(handler.TrustSubnetMiddleware(handler.AuthMiddleware(handler.GzipMiddleware(appHandler), repo), cfg.TrustedSubnet))}
 	idleConnsClosed := make(chan struct{})
 	sigint := make(chan os.Signal, 1)
 	signal.Notify(sigint, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)

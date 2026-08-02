@@ -94,6 +94,21 @@ func (mr *MockRepositoryInterfaceMockRecorder) GetUsersID(ctx interface{}) *gomo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUsersID", reflect.TypeOf((*MockRepositoryInterface)(nil).GetUsersID), ctx)
 }
 
+// InternalStats mocks base method.
+func (m *MockRepositoryInterface) InternalStats(ctx context.Context) (models.ApiInternalStatsRes, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "InternalStats", ctx)
+	ret0, _ := ret[0].(models.ApiInternalStatsRes)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// InternalStats indicates an expected call of InternalStats.
+func (mr *MockRepositoryInterfaceMockRecorder) InternalStats(ctx interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InternalStats", reflect.TypeOf((*MockRepositoryInterface)(nil).InternalStats), ctx)
+}
+
 // Ping mocks base method.
 func (m *MockRepositoryInterface) Ping(ctx context.Context) error {
 	m.ctrl.T.Helper()

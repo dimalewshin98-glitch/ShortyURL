@@ -42,6 +42,32 @@ func (s *RequestsHandler) Ping(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// ApiInternalStats — обработчик для получения внутренней статистики сервиса.
+// Обрабатывает только GET-запросы.
+// В случае успеха возвращает HTTP-статус 200 OK и JSON-объект со статистикой.
+// При ошибке в работе сервиса возвращает 500 Internal Server Error.
+func (s *RequestsHandler) ApiInternalStats(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusBadRequest)
+		return
+	}
+	internalStats, err := s.service.InternalStats(ctx)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	enc := json.NewEncoder(w)
+	err = enc.Encode(internalStats)
+	if err != nil {
+		http.Error(w, "Json response encode error", http.StatusInternalServerError)
+		return
+	}
+}
+
 // GetURL — обработчик для перенаправления пользователя по короткому URL.
 // Обрабатывает только GET-запросы с Content-Type: text/plain.
 // Извлекает ID короткого URL из пути и выполняет перенаправление (307 Temporary Redirect) на исходный адрес.

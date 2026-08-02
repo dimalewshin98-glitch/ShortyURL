@@ -115,17 +115,43 @@ func (r *DBRepository) CreateTables(ctx context.Context) error {
 	return tx.Commit()
 }
 
-func (r *DBRepository) Ping(ctx context.Context) error {
-	err := r.dbConnection.PingContext(ctx)
-	return err
-}
-
 func (r *DBRepository) Close(ctx context.Context) error {
 	_ = ctx
 	if r.dbConnection != nil {
 		return r.dbConnection.Close()
 	}
 	return nil
+}
+
+func (r *DBRepository) Ping(ctx context.Context) error {
+	err := r.dbConnection.PingContext(ctx)
+	return err
+}
+
+func (r *DBRepository) InternalStats(ctx context.Context) (models.ApiInternalStatsRes, error) {
+	var URLCount int64
+	var usersCount int64
+	sqlSelect := "SELECT count(original_url) FROM urls;"
+	row := r.dbConnection.QueryRowContext(ctx, sqlSelect)
+	err := row.Scan(&URLCount)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			URLCount = 0
+		} else {
+			return models.ApiInternalStatsRes{}, err
+		}
+	}
+	sqlSelect = "SELECT COUNT(DISTINCT user_id) AS unique_users_count FROM urls WHERE user_id IS NOT NULL;"
+	row = r.dbConnection.QueryRowContext(ctx, sqlSelect)
+	err = row.Scan(&usersCount)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			usersCount = 0
+		} else {
+			return models.ApiInternalStatsRes{}, err
+		}
+	}
+	return models.ApiInternalStatsRes{URLs: URLCount, Users: usersCount}, nil
 }
 
 func (r *DBRepository) Store(ctx context.Context, ctxUUID string, isLastReq bool, userID int, urlID string, URL string) (string, error) {

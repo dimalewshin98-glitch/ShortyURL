@@ -71,3 +71,8 @@ type AuditData struct {
 	// URL — URL-адрес, над которым было совершено действие.
 	URL string `json:"url"`
 }
+
+type ApiInternalStatsRes struct {
+	URLs  int64 `json:"urls"`
+	Users int64 `json:"users"`
+}

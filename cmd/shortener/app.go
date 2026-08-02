@@ -30,6 +30,7 @@ func (a *App) GetHandler(auditors []service.Auditor) http.Handler {
 	requestsHandler := handler.NewRequestsHandler(shorterService)
 	r := chi.NewRouter()
 	r.Get("/ping", requestsHandler.Ping)
+	r.Get("/api/internal/stats", requestsHandler.ApiInternalStats)
 	r.Post("/", requestsHandler.Shorten)
 	r.Get("/{id}", requestsHandler.GetURL)
 	r.Post("/api/shorten", requestsHandler.ApiShorten)

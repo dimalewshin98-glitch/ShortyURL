@@ -16,6 +16,7 @@ type Config struct {
 	DatabaseDsn        string
 	AuditFile          string
 	AuditURL           string
+	TrustedSubnet      string
 }
 
 type JSONConfig struct {
@@ -27,6 +28,7 @@ type JSONConfig struct {
 	LogLevel        string `json:"log_level"`
 	AuditFile       string `json:"audit_file"`
 	AuditURL        string `json:"audit_url"`
+	TrustedSubnet   string `json:"trusted_subnet"`
 }
 
 func NewConfig() (*Config, error) {
@@ -39,6 +41,7 @@ func NewConfig() (*Config, error) {
 	logLevel := flag.String("l", "info", "log level")
 	fileStoragePath := flag.String("f", "", "file storage path")
 	databaseDsn := flag.String("d", "", "databse destination (host/host:port)")
+	trustedSubnet := flag.String("t", "", "trusted subnet")
 	auditFile := flag.String("audit-file", "", "audit file")
 	auditURL := flag.String("audit-url", "", "audit url")
 	flag.Parse()
@@ -73,6 +76,9 @@ func NewConfig() (*Config, error) {
 	if !visitedFlags["l"] && jsonConfig.LogLevel != "" {
 		*logLevel = jsonConfig.LogLevel
 	}
+	if !visitedFlags["t"] && jsonConfig.TrustedSubnet != "" {
+		*trustedSubnet = jsonConfig.TrustedSubnet
+	}
 	if !visitedFlags["audit-file"] && jsonConfig.AuditFile != "" {
 		*auditFile = jsonConfig.AuditFile
 	}
@@ -103,6 +109,9 @@ func NewConfig() (*Config, error) {
 	if envAuditURL := os.Getenv("AUDIT_URL"); envAuditURL != "" {
 		*auditURL = envAuditURL
 	}
+	if envTrustedSubnet := os.Getenv("TRUSTED_SUBNET"); envTrustedSubnet != "" {
+		*trustedSubnet = envTrustedSubnet
+	}
 	conf := &Config{
 		ServerHostPort:     *serverHostPort,
 		EnableHTTPS:        *enableHTTPS,
@@ -112,6 +121,7 @@ func NewConfig() (*Config, error) {
 		DatabaseDsn:        *databaseDsn,
 		AuditFile:          *auditFile,
 		AuditURL:           *auditURL,
+		TrustedSubnet:      *trustedSubnet,
 	}
 	conf.RepositoryType = conf.setRepositoryType(*fileStoragePath, *databaseDsn)
 	return conf, nil

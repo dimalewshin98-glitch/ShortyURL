@@ -134,14 +134,33 @@ func NewfileRepository(fileStoragePath string) (*InfileRepository, error) {
 	}, err
 }
 
-func (r *InfileRepository) Ping(ctx context.Context) error {
-	return nil
-}
-
 func (r *InfileRepository) Close(ctx context.Context) error {
 	r.producer.Close()
 	r.consumer.Close()
 	return nil
+}
+
+func (r *InfileRepository) Ping(ctx context.Context) error {
+	return nil
+}
+
+func (r *InfileRepository) InternalStats(ctx context.Context) (models.ApiInternalStatsRes, error) {
+	elements, err := r.consumer.ReadElements()
+	if err != nil {
+		return models.ApiInternalStatsRes{}, err
+	}
+	var urlsCount int64
+	uniqueUsers := make(map[int]struct{})
+	for _, element := range elements {
+		urlsCount++
+		if element.UserID != 0 {
+			uniqueUsers[element.UserID] = struct{}{}
+		}
+	}
+	return models.ApiInternalStatsRes{
+		URLs:  urlsCount,
+		Users: int64(len(uniqueUsers)),
+	}, nil
 }
 
 func (r *InfileRepository) Store(ctx context.Context, ctxUUID string, isLastReq bool, userID int, urlID string, URL string) (string, error) {
