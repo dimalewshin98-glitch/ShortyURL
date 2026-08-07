@@ -37,6 +37,14 @@ func (s *ShorterService) Ping(ctx context.Context) error {
 	return err
 }
 
+func (s *ShorterService) InternalStats(ctx context.Context) (models.ApiInternalStatsRes, error) {
+	internalStats, err := s.repo.InternalStats(ctx)
+	if err != nil {
+		return models.ApiInternalStatsRes{}, err
+	}
+	return internalStats, nil
+}
+
 func (s *ShorterService) GetURL(ctx context.Context, userID int, urlID string) (string, error) {
 	URL, err := s.repo.Get(ctx, urlID)
 	if err != nil {

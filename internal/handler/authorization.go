@@ -7,8 +7,13 @@ import (
 	"net/http"
 	"time"
 
+	contextkeys "github.com/dimalewshin98-glitch/ShortyURL/internal"
 	"github.com/dimalewshin98-glitch/ShortyURL/internal/repository"
 	"github.com/golang-jwt/jwt/v4"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 )
 
 type Claims struct {
@@ -116,7 +121,29 @@ func AuthMiddleware(h http.Handler, repo repository.RepositoryInterface) http.Ha
 			Value: tokenString,
 			Path:  "/api/",
 		})
-		ctx := context.WithValue(r.Context(), "userID", userID)
+		ctx := context.WithValue(r.Context(), contextkeys.UserIDKey, userID)
 		h.ServeHTTP(w, r.WithContext(ctx))
 	})
+}
+
+func AuthUnaryInterceptor(repo repository.RepositoryInterface) grpc.UnaryServerInterceptor {
+	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+		var token string
+		if md, ok := metadata.FromIncomingContext(ctx); ok {
+			values := md.Get("authorization")
+			if len(values) > 0 {
+				token = values[0]
+			}
+		}
+		if len(token) == 0 {
+			return nil, status.Error(codes.Unauthenticated, "missing token")
+		}
+		userID := GetUserID(token)
+		switch userID {
+		case 0:
+			return nil, status.Error(codes.Unauthenticated, "token error")
+		}
+		ctx = context.WithValue(ctx, contextkeys.UserIDKey, userID)
+		return handler(ctx, req)
+	}
 }

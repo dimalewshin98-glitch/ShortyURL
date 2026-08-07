@@ -11,25 +11,28 @@ import (
 )
 
 type App struct {
-	repo repository.RepositoryInterface
-	cfg  config.Config
+	repo           repository.RepositoryInterface
+	cfg            config.Config
+	shorterService *service.ShorterService
 }
 
-func NewApp(repo repository.RepositoryInterface, cfg config.Config) *App {
-	return &App{
-		repo: repo,
-		cfg:  cfg,
-	}
-}
-
-func (a *App) GetHandler(auditors []service.Auditor) http.Handler {
-	shorterService := service.NewShorterService(a.repo, &a.cfg)
+func NewApp(repo repository.RepositoryInterface, cfg config.Config, auditors []service.Auditor) *App {
+	shorterService := service.NewShorterService(repo, &cfg)
 	for _, a := range auditors {
 		shorterService.AttachAuditor(a)
 	}
-	requestsHandler := handler.NewRequestsHandler(shorterService)
+	return &App{
+		repo:           repo,
+		cfg:            cfg,
+		shorterService: shorterService,
+	}
+}
+
+func (a *App) GetHTTPHandler() http.Handler {
+	requestsHandler := handler.NewRequestsHandler(a.shorterService)
 	r := chi.NewRouter()
 	r.Get("/ping", requestsHandler.Ping)
+	r.Get("/api/internal/stats", requestsHandler.ApiInternalStats)
 	r.Post("/", requestsHandler.Shorten)
 	r.Get("/{id}", requestsHandler.GetURL)
 	r.Post("/api/shorten", requestsHandler.ApiShorten)
@@ -37,4 +40,9 @@ func (a *App) GetHandler(auditors []service.Auditor) http.Handler {
 	r.Get("/api/user/urls", requestsHandler.ApiUserUrls)
 	r.Delete("/api/user/urls", requestsHandler.Delete)
 	return r
+}
+
+func (a *App) GetGRPCRequestsHandler() *handler.GRPCRequestsHandler {
+	GRPCRequestsHandler := handler.NewGRPCRequestsHandler(a.shorterService)
+	return GRPCRequestsHandler
 }

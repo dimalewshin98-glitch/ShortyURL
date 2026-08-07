@@ -8,6 +8,7 @@ import (
 
 type Config struct {
 	ServerHostPort     string
+	GrpcServerHostPort string
 	EnableHTTPS        bool
 	ShortenURLHostPort string
 	LogLevel           string
@@ -16,17 +17,20 @@ type Config struct {
 	DatabaseDsn        string
 	AuditFile          string
 	AuditURL           string
+	TrustedSubnet      string
 }
 
 type JSONConfig struct {
-	ServerAddress   string `json:"server_address"`
-	BaseURL         string `json:"base_url"`
-	FileStoragePath string `json:"file_storage_path"`
-	DatabaseDSN     string `json:"database_dsn"`
-	EnableHTTPS     bool   `json:"enable_https"`
-	LogLevel        string `json:"log_level"`
-	AuditFile       string `json:"audit_file"`
-	AuditURL        string `json:"audit_url"`
+	ServerAddress     string `json:"server_address"`
+	GrpcServerAddress string `json:"grpc_server_address"`
+	BaseURL           string `json:"base_url"`
+	FileStoragePath   string `json:"file_storage_path"`
+	DatabaseDSN       string `json:"database_dsn"`
+	EnableHTTPS       bool   `json:"enable_https"`
+	LogLevel          string `json:"log_level"`
+	AuditFile         string `json:"audit_file"`
+	AuditURL          string `json:"audit_url"`
+	TrustedSubnet     string `json:"trusted_subnet"`
 }
 
 func NewConfig() (*Config, error) {
@@ -34,11 +38,13 @@ func NewConfig() (*Config, error) {
 	flag.StringVar(&configFile, "c", "", "config file path")
 	flag.StringVar(&configFile, "config", "", "config file path")
 	serverHostPort := flag.String("a", "localhost:8888", "server host:port")
+	grpcServerHostPort := flag.String("g", "localhost:8889", "grpc server host:port")
 	enableHTTPS := flag.Bool("s", false, "enable HTTPS")
 	shortenURLHostPort := flag.String("b", "http://localhost:8000", "shorten url http://host:port")
 	logLevel := flag.String("l", "info", "log level")
 	fileStoragePath := flag.String("f", "", "file storage path")
 	databaseDsn := flag.String("d", "", "databse destination (host/host:port)")
+	trustedSubnet := flag.String("t", "", "trusted subnet")
 	auditFile := flag.String("audit-file", "", "audit file")
 	auditURL := flag.String("audit-url", "", "audit url")
 	flag.Parse()
@@ -58,6 +64,9 @@ func NewConfig() (*Config, error) {
 	if !visitedFlags["a"] && jsonConfig.ServerAddress != "" {
 		*serverHostPort = jsonConfig.ServerAddress
 	}
+	if !visitedFlags["g"] && jsonConfig.GrpcServerAddress != "" {
+		*grpcServerHostPort = jsonConfig.GrpcServerAddress
+	}
 	if !visitedFlags["b"] && jsonConfig.BaseURL != "" {
 		*shortenURLHostPort = jsonConfig.BaseURL
 	}
@@ -73,6 +82,9 @@ func NewConfig() (*Config, error) {
 	if !visitedFlags["l"] && jsonConfig.LogLevel != "" {
 		*logLevel = jsonConfig.LogLevel
 	}
+	if !visitedFlags["t"] && jsonConfig.TrustedSubnet != "" {
+		*trustedSubnet = jsonConfig.TrustedSubnet
+	}
 	if !visitedFlags["audit-file"] && jsonConfig.AuditFile != "" {
 		*auditFile = jsonConfig.AuditFile
 	}
@@ -81,6 +93,9 @@ func NewConfig() (*Config, error) {
 	}
 	if envServerHostPort := os.Getenv("SERVER_ADDRESS"); envServerHostPort != "" {
 		*serverHostPort = envServerHostPort
+	}
+	if envGrpcServerHostPort := os.Getenv("GRPC_SERVER_ADDRESS"); envGrpcServerHostPort != "" {
+		*grpcServerHostPort = envGrpcServerHostPort
 	}
 	if envEnableHTTPS := os.Getenv("ENABLE_HTTPS"); envEnableHTTPS != "" {
 		*enableHTTPS = envEnableHTTPS == "true"
@@ -103,8 +118,12 @@ func NewConfig() (*Config, error) {
 	if envAuditURL := os.Getenv("AUDIT_URL"); envAuditURL != "" {
 		*auditURL = envAuditURL
 	}
+	if envTrustedSubnet := os.Getenv("TRUSTED_SUBNET"); envTrustedSubnet != "" {
+		*trustedSubnet = envTrustedSubnet
+	}
 	conf := &Config{
 		ServerHostPort:     *serverHostPort,
+		GrpcServerHostPort: *grpcServerHostPort,
 		EnableHTTPS:        *enableHTTPS,
 		ShortenURLHostPort: *shortenURLHostPort,
 		LogLevel:           *logLevel,
@@ -112,6 +131,7 @@ func NewConfig() (*Config, error) {
 		DatabaseDsn:        *databaseDsn,
 		AuditFile:          *auditFile,
 		AuditURL:           *auditURL,
+		TrustedSubnet:      *trustedSubnet,
 	}
 	conf.RepositoryType = conf.setRepositoryType(*fileStoragePath, *databaseDsn)
 	return conf, nil

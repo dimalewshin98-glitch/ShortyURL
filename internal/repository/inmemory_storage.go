@@ -24,12 +24,29 @@ func NewInmemoryRepository() *InmemoryRepository {
 	}
 }
 
+func (r *InmemoryRepository) Close(ctx context.Context) error {
+	return nil
+}
+
 func (r *InmemoryRepository) Ping(ctx context.Context) error {
 	return nil
 }
 
-func (r *InmemoryRepository) Close(ctx context.Context) error {
-	return nil
+func (r *InmemoryRepository) InternalStats(ctx context.Context) (models.ApiInternalStatsRes, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	uniqueUsers := make(map[int]struct{})
+	var urlsCount int64
+	for _, urlInfo := range r.urls {
+		urlsCount++
+		if urlInfo.UserID != 0 {
+			uniqueUsers[urlInfo.UserID] = struct{}{}
+		}
+	}
+	return models.ApiInternalStatsRes{
+		URLs:  urlsCount,
+		Users: int64(len(uniqueUsers)),
+	}, nil
 }
 
 func (r *InmemoryRepository) Store(ctx context.Context, ctxUUID string, isLastReq bool, userID int, urlID string, URL string) (string, error) {

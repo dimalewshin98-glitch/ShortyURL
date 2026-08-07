@@ -1,11 +1,13 @@
 package logger
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 	"time"
 
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
 )
 
 var Log *zap.Logger = zap.NewNop()
@@ -61,4 +63,32 @@ func RequestLogger(h http.Handler) http.Handler {
 		)
 	})
 
+}
+
+func LoggingUnaryInterceptor(
+	ctx context.Context,
+	req interface{},
+	info *grpc.UnaryServerInfo,
+	handler grpc.UnaryHandler,
+) (interface{}, error) {
+	start := time.Now()
+	Log.Info("got incoming gRPC request",
+		zap.String("method", info.FullMethod),
+		zap.Any("request", req),
+	)
+	resp, err := handler(ctx, req)
+	if err != nil {
+		Log.Error("gRPC request failed",
+			zap.String("method", info.FullMethod),
+			zap.Duration("duration", time.Since(start)),
+			zap.Error(err),
+		)
+	} else {
+		Log.Info("gRPC request completed",
+			zap.String("method", info.FullMethod),
+			zap.Duration("duration", time.Since(start)),
+			zap.Any("response", resp),
+		)
+	}
+	return resp, err
 }

@@ -80,4 +80,16 @@ type RepositoryInterface interface {
 	//   userID - идентификатор пользователя-владельца ссылки.
 	//   urlID - идентификатор короткой ссылки для удаления.
 	SetDelete(ctx context.Context, ctxUUID string, isLastReq bool, userID int, urlID string) (string, error)
+
+	// InternalStats — получение внутренней статистики сервиса.
+	// Возвращает агрегированные данные о работе системы, такие как количество сокращённых ссылок,
+	// активных пользователей или другие метрики, специфичные для реализации.
+	//
+	// Параметры:
+	//   ctx - контекст запроса.
+	//
+	// Возвращает:
+	//   models.ApiInternalStatsRes - структура с данными внутренней статистики.
+	//   error - ошибка при выполнении запроса к хранилищу данных.
+	InternalStats(ctx context.Context) (models.ApiInternalStatsRes, error)
 }

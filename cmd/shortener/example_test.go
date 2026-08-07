@@ -340,10 +340,10 @@ func ExampleRequestsHandler_ApiShorten() {
 		ServerHostPort:     "localhost:8080",
 		ShortenURLHostPort: "http://localhost:8080",
 	}
-	app := NewApp(mockedRepository, *mockedConfig)
 	auditors := make([]service.Auditor, 0)
-	appHandler := app.GetHandler(auditors)
-	handlerWithMiddleware := handler.GzipMiddleware(handler.AuthMiddleware(appHandler, repository))
+	app := NewApp(mockedRepository, *mockedConfig, auditors)
+	HTTPHandler := app.GetHTTPHandler()
+	handlerWithMiddleware := handler.GzipMiddleware(handler.AuthMiddleware(HTTPHandler, repository))
 	var buf *bytes.Buffer
 	if test.contentEncoding == "gzip" {
 		var b bytes.Buffer

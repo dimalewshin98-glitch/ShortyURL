@@ -116,6 +116,78 @@ func TestPingHandler(t *testing.T) {
 	}
 }
 
+func TestInternalStats(t *testing.T) {
+	type want struct {
+		statusCode    int
+		response      string
+		dbResponse    models.ApiInternalStatsRes
+		dbResponseErr error
+	}
+	tests := []struct {
+		name        string
+		request     string
+		requestType string
+		want        want
+	}{
+		{
+			name: "test 1 | Success",
+			want: want{
+				statusCode:    200,
+				response:      `{"urls":6,"users":7}` + "\n",
+				dbResponse:    models.ApiInternalStatsRes{URLs: 6, Users: 7},
+				dbResponseErr: nil,
+			},
+			request:     "/api/internal/stats",
+			requestType: "GET",
+		},
+		{
+			name: "test 2 | Unsuccess | Request type error",
+			want: want{
+				statusCode:    400,
+				response:      "Method not allowed\n",
+				dbResponse:    models.ApiInternalStatsRes{},
+				dbResponseErr: nil,
+			},
+			request:     "/api/internal/stats",
+			requestType: "POST",
+		},
+		{
+			name: "test 3 | Unsuccess | DB error",
+			want: want{
+				statusCode:    500,
+				response:      "db connection failed\n",
+				dbResponse:    models.ApiInternalStatsRes{},
+				dbResponseErr: errors.New("db connection failed"),
+			},
+			request:     "/api/internal/stats",
+			requestType: "GET",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			mockedRepository := mocks.NewMockRepositoryInterface(ctrl)
+			if tt.requestType == "GET" {
+				mockedRepository.EXPECT().
+					InternalStats(gomock.Any()).
+					Return(tt.want.dbResponse, tt.want.dbResponseErr)
+			}
+			mockedConfig := &config.Config{
+				ServerHostPort:     "localhost:8080",
+				ShortenURLHostPort: "http://localhost:8080",
+			}
+			shorterService := service.NewShorterService(mockedRepository, mockedConfig)
+			requestsHandler := handler.NewRequestsHandler(shorterService)
+			request := httptest.NewRequest(tt.requestType, tt.request, nil)
+			w := httptest.NewRecorder()
+			requestsHandler.ApiInternalStats(w, request)
+			resBytes, _ := io.ReadAll(w.Body)
+			assert.Equal(t, tt.want.statusCode, w.Result().StatusCode)
+			assert.Equal(t, tt.want.response, string(resBytes))
+		})
+	}
+}
+
 func TestApiShortenBatchHandler(t *testing.T) {
 	type want struct {
 		contentType     string
@@ -670,10 +742,10 @@ func TestApiStorenHandler(t *testing.T) {
 		ServerHostPort:     "localhost:8080",
 		ShortenURLHostPort: "http://localhost:8080",
 	}
-	app := NewApp(mockedRepository, *mockedConfig)
 	auditors := make([]service.Auditor, 0)
-	appHandler := app.GetHandler(auditors)
-	srv := httptest.NewServer((handler.GzipMiddleware(handler.AuthMiddleware(appHandler, repository))))
+	app := NewApp(mockedRepository, *mockedConfig, auditors)
+	HTTPHandler := app.GetHTTPHandler()
+	srv := httptest.NewServer((handler.GzipMiddleware(handler.AuthMiddleware(HTTPHandler, repository))))
 	defer srv.Close()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
