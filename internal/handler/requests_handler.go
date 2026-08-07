@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	contextkeys "github.com/dimalewshin98-glitch/ShortyURL/internal"
 	models "github.com/dimalewshin98-glitch/ShortyURL/internal/model"
 	"github.com/dimalewshin98-glitch/ShortyURL/internal/repository"
 	"github.com/dimalewshin98-glitch/ShortyURL/internal/service"
@@ -73,14 +74,9 @@ func (s *RequestsHandler) ApiInternalStats(w http.ResponseWriter, r *http.Reques
 // Извлекает ID короткого URL из пути и выполняет перенаправление (307 Temporary Redirect) на исходный адрес.
 // Если URL был удален, возвращает 410 Gone.
 func (s *RequestsHandler) GetURL(w http.ResponseWriter, r *http.Request) {
-	rawUserID := r.Context().Value("userID")
-	if rawUserID == nil {
-		http.Error(w, "User ID not found in context", http.StatusBadRequest)
-		return
-	}
-	userID, ok := rawUserID.(int)
-	if !ok {
-		http.Error(w, "Invalid User ID type in context", http.StatusBadRequest)
+	userID, err := contextkeys.GetUserID(r.Context())
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -113,14 +109,9 @@ func (s *RequestsHandler) GetURL(w http.ResponseWriter, r *http.Request) {
 // В случае успеха возвращает созданный короткий URL в теле ответа со статусом 201 Created.
 // Если короткий URL уже существует, возвращает статус 409 Conflict.
 func (s *RequestsHandler) Shorten(w http.ResponseWriter, r *http.Request) {
-	rawUserID := r.Context().Value("userID")
-	if rawUserID == nil {
-		http.Error(w, "User ID not found in context", http.StatusBadRequest)
-		return
-	}
-	userID, ok := rawUserID.(int)
-	if !ok {
-		http.Error(w, "Invalid User ID type in context", http.StatusBadRequest)
+	userID, err := contextkeys.GetUserID(r.Context())
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -164,14 +155,9 @@ func (s *RequestsHandler) Shorten(w http.ResponseWriter, r *http.Request) {
 // Возвращает ответ в формате models.ApiShortenRes со статусом 201 Created.
 // При ошибке возвращает 400 Bad Request.
 func (s *RequestsHandler) ApiShorten(w http.ResponseWriter, r *http.Request) {
-	rawUserID := r.Context().Value("userID")
-	if rawUserID == nil {
-		http.Error(w, "User ID not found in context", http.StatusBadRequest)
-		return
-	}
-	userID, ok := rawUserID.(int)
-	if !ok {
-		http.Error(w, "Invalid User ID type in context", http.StatusBadRequest)
+	userID, err := contextkeys.GetUserID(r.Context())
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -187,7 +173,7 @@ func (s *RequestsHandler) ApiShorten(w http.ResponseWriter, r *http.Request) {
 	var req models.ApiShortenReq
 	dec := json.NewDecoder(r.Body)
 	defer r.Body.Close()
-	err := dec.Decode(&req)
+	err = dec.Decode(&req)
 	if err != nil {
 		http.Error(w, "Json request decode error", http.StatusBadRequest)
 		return
@@ -225,14 +211,9 @@ func (s *RequestsHandler) ApiShorten(w http.ResponseWriter, r *http.Request) {
 // Возвращает результат в формате models.ApiShortenBatchRes со статусом 201 Created.
 // При ошибке возвращает 400 Bad Request.
 func (s *RequestsHandler) ApiShortenBatch(w http.ResponseWriter, r *http.Request) {
-	rawUserID := r.Context().Value("userID")
-	if rawUserID == nil {
-		http.Error(w, "User ID not found in context", http.StatusBadRequest)
-		return
-	}
-	userID, ok := rawUserID.(int)
-	if !ok {
-		http.Error(w, "Invalid User ID type in context", http.StatusBadRequest)
+	userID, err := contextkeys.GetUserID(r.Context())
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -248,7 +229,7 @@ func (s *RequestsHandler) ApiShortenBatch(w http.ResponseWriter, r *http.Request
 	var req models.ApiShortenBatchReq
 	dec := json.NewDecoder(r.Body)
 	defer r.Body.Close()
-	err := dec.Decode(&req)
+	err = dec.Decode(&req)
 	if err != nil {
 		http.Error(w, "Json request decode error", http.StatusBadRequest)
 		return
@@ -277,14 +258,9 @@ func (s *RequestsHandler) ApiShortenBatch(w http.ResponseWriter, r *http.Request
 // Возвращает список URL в формате models.ApiUserUrlsRes.
 // При ошибке возвращает 400 Bad Request.
 func (s *RequestsHandler) ApiUserUrls(w http.ResponseWriter, r *http.Request) {
-	rawUserID := r.Context().Value("userID")
-	if rawUserID == nil {
-		http.Error(w, "User ID not found in context", http.StatusBadRequest)
-		return
-	}
-	userID, ok := rawUserID.(int)
-	if !ok {
-		http.Error(w, "Invalid User ID type in context", http.StatusBadRequest)
+	userID, err := contextkeys.GetUserID(r.Context())
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -317,14 +293,9 @@ func (s *RequestsHandler) ApiUserUrls(w http.ResponseWriter, r *http.Request) {
 // Возвращает ответ со статусом 202 Accepted.
 // При ошибке возвращает 400 Bad Request.
 func (s *RequestsHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	rawUserID := r.Context().Value("userID")
-	if rawUserID == nil {
-		http.Error(w, "User ID not found in context", http.StatusBadRequest)
-		return
-	}
-	userID, ok := rawUserID.(int)
-	if !ok {
-		http.Error(w, "Invalid User ID type in context", http.StatusBadRequest)
+	userID, err := contextkeys.GetUserID(r.Context())
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -340,7 +311,7 @@ func (s *RequestsHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	var req models.ApiDeleteReq
 	dec := json.NewDecoder(r.Body)
 	defer r.Body.Close()
-	err := dec.Decode(&req)
+	err = dec.Decode(&req)
 	if err != nil {
 		http.Error(w, "Json request decode error", http.StatusBadRequest)
 		return

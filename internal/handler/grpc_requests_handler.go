@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	pb "github.com/dimalewshin98-glitch/ShortyURL/api"
+	contextkeys "github.com/dimalewshin98-glitch/ShortyURL/internal"
 	"github.com/dimalewshin98-glitch/ShortyURL/internal/repository"
 	"github.com/dimalewshin98-glitch/ShortyURL/internal/service"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -23,13 +24,9 @@ func NewGRPCRequestsHandler(service service.ServiceInterface) *GRPCRequestsHandl
 }
 
 func (g *GRPCRequestsHandler) ShortenURL(ctx context.Context, in *pb.URLShortenRequest) (*pb.URLShortenResponse, error) {
-	rawUserID := ctx.Value("userID")
-	if rawUserID == nil {
-		return nil, fmt.Errorf("user ID not found in context")
-	}
-	userID, ok := rawUserID.(int)
-	if !ok {
-		return nil, fmt.Errorf("invalid user ID type in context")
+	userID, err := contextkeys.GetUserID(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("Unauthorized")
 	}
 	url := in.GetUrl()
 	if url == "" {
@@ -46,13 +43,9 @@ func (g *GRPCRequestsHandler) ShortenURL(ctx context.Context, in *pb.URLShortenR
 }
 
 func (g *GRPCRequestsHandler) ExpandURL(ctx context.Context, in *pb.URLExpandRequest) (*pb.URLExpandResponse, error) {
-	rawUserID := ctx.Value("userID")
-	if rawUserID == nil {
-		return nil, fmt.Errorf("user ID not found in context")
-	}
-	userID, ok := rawUserID.(int)
-	if !ok {
-		return nil, fmt.Errorf("invalid user ID type in context")
+	userID, err := contextkeys.GetUserID(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("Unauthorized")
 	}
 	urlID := in.GetId()
 	if urlID == "" {
@@ -72,13 +65,9 @@ func (g *GRPCRequestsHandler) ExpandURL(ctx context.Context, in *pb.URLExpandReq
 }
 
 func (g *GRPCRequestsHandler) ListUserURLs(ctx context.Context, in *emptypb.Empty) (*pb.UserURLsResponse, error) {
-	rawUserID := ctx.Value("userID")
-	if rawUserID == nil {
-		return nil, fmt.Errorf("user ID not found in context")
-	}
-	userID, ok := rawUserID.(int)
-	if !ok {
-		return nil, fmt.Errorf("invalid user ID type in context")
+	userID, err := contextkeys.GetUserID(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("Unauthorized")
 	}
 	userURLs, err := g.shortenerService.UserUrls(ctx, userID)
 	if err != nil {
